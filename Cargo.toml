@@ -1,0 +1,19 @@
+[package]
+name = "rng-tree"
+version = "0.1.0"
+authors = ["Alex Ostrovski <ostrovski.alex@gmail.com>"]
+
+[dependencies]
+byteorder = "1.2.7"
+clear_on_drop = "0.2.3"
+blake2-rfc = "0.2.18"
+rand_core = "0.3.0"
+rand_chacha = "0.1.0"
+
+[dev-dependencies]
+hex = "0.3.2"
+rand = "0.5.5"
+ed25519-dalek = "=1.0.0-pre.0"
+pwbox = { version = "=0.1.0", default-features = false, features = ["rust-crypto"] }
+sha2 = "0.8.0"
+toml = "0.4.10"
