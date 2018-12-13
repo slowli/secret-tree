@@ -27,8 +27,8 @@ struct Blake2bParams {
 impl Blake2bParams {
     fn to_block(&self) -> [u64; 8] {
         let mut block = [0_u64; 8];
-        block[0] = self.digest_len as u64;
-        block[0] += (self.key_len as u64) << 8;
+        block[0] = u64::from(self.digest_len);
+        block[0] += u64::from(self.key_len) << 8;
         block[0] += 1 << 16; // fanout
         block[0] += 1 << 24; // max depth
 
@@ -63,7 +63,7 @@ impl Index {
 pub fn derive_key(
     output: &mut [u8],
     key: &[u8; KEY_LEN],
-    context: &[u8; CONTEXT_LEN],
+    context: [u8; CONTEXT_LEN],
     index: Index,
 ) {
     assert!(
@@ -72,7 +72,7 @@ pub fn derive_key(
     );
 
     let mut personalization = [0; MAX_CONTEXT_LEN];
-    personalization[..context.len()].copy_from_slice(context);
+    personalization[..context.len()].copy_from_slice(&context);
 
     let params = Blake2bParams {
         digest_len: output.len() as u8,
@@ -93,7 +93,7 @@ pub fn derive_key(
 fn sodium_test_vectors_64byte_output() {
     use hex;
 
-    const CTX: &[u8; CONTEXT_LEN] = b"KDF test";
+    const CTX: [u8; CONTEXT_LEN] = *b"KDF test";
     const EXP: &[&str] = &[
         "a0c724404728c8bb95e5433eb6a9716171144d61efb23e74b873fcbeda51d807\
          1b5d70aae12066dfc94ce943f145aa176c055040c3dd73b0a15e36254d450614",
@@ -118,8 +118,8 @@ fn sodium_test_vectors_64byte_output() {
     ];
 
     let mut key = [0_u8; KEY_LEN];
-    for i in 0..key.len() {
-        key[i] = i as u8;
+    for (i, byte) in key.iter_mut().enumerate() {
+        *byte = i as u8;
     }
 
     let mut output = [0_u8; 64];
@@ -133,7 +133,7 @@ fn sodium_test_vectors_64byte_output() {
 fn sodium_test_vectors_varying_len_output() {
     use hex;
 
-    const CTX: &[u8; CONTEXT_LEN] = b"KDF test";
+    const CTX: [u8; CONTEXT_LEN] = *b"KDF test";
     const EXP: &[&str] = &[
         "a529216624ef9161e4cf117272aafff2",
         "268214dc9477a2e3c1022829f934ab992a5a3d84",
@@ -145,8 +145,8 @@ fn sodium_test_vectors_varying_len_output() {
     ];
 
     let mut key = [0_u8; KEY_LEN];
-    for i in 0..key.len() {
-        key[i] = i as u8;
+    for (i, byte) in key.iter_mut().enumerate() {
+        *byte = i as u8;
     }
 
     for &exp in EXP.iter() {

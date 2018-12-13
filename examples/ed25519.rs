@@ -81,7 +81,11 @@ fn main() {
     );
 
     // ...Then, we can restore all keys by deserializing the RNG tree.
-    let seed = eraser.restore(&secured_store).unwrap().open(password).unwrap();
+    let seed = eraser
+        .restore(&secured_store)
+        .unwrap()
+        .open(password)
+        .unwrap();
     let tree = RngTree::from_seed(&seed).unwrap();
 
     let keys = Keys::new(&tree);

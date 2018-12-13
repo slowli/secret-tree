@@ -69,9 +69,9 @@ impl fmt::Debug for RngTree {
 }
 
 impl RngTree {
-    const RNG_CONTEXT: &'static [u8; CONTEXT_LEN] = b"rng\0\0\0\0\0";
-    const NAME_CONTEXT: &'static [u8; CONTEXT_LEN] = b"name\0\0\0\0";
-    const INDEX_CONTEXT: &'static [u8; CONTEXT_LEN] = b"index\0\0\0";
+    const RNG_CONTEXT: [u8; CONTEXT_LEN] = *b"rng\0\0\0\0\0";
+    const NAME_CONTEXT: [u8; CONTEXT_LEN] = *b"name\0\0\0\0";
+    const INDEX_CONTEXT: [u8; CONTEXT_LEN] = *b"index\0\0\0";
 
     /// Generates an RNG tree by reading its seed from the supplied RNG.
     pub fn new<R: RngCore + CryptoRng>(csrng: &mut R) -> Self {
@@ -99,12 +99,7 @@ impl RngTree {
     /// (CSPRNG). This RNG can then be used to reproducibly create secrets (e.g., secret keys).
     pub fn rng(self) -> ChaChaRng {
         let mut seed = <ChaChaRng as SeedableRng>::Seed::default();
-        derive_key(
-            seed.as_mut(),
-            &self.seed,
-            Self::RNG_CONTEXT,
-            Index::None,
-        );
+        derive_key(seed.as_mut(), &self.seed, Self::RNG_CONTEXT, Index::None);
         ChaChaRng::from_seed(seed)
     }
 
