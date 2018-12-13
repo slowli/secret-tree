@@ -53,13 +53,13 @@ pub const MAX_NAME_LEN: usize = SALT_LEN;
 /// drop(tree);
 ///
 /// // If we restore the store from the seed, we can restore all derived secrets.
-/// let tree = RngTree::from_seed(seed);
+/// let tree = RngTree::from_seed(&seed).unwrap();
 /// let restored_secret: [u8; 32] = tree.child(Name::new("first")).rng().gen();
 /// assert_eq!(first_secret, restored_secret);
 /// ```
 #[derive(Default)]
 pub struct RngTree {
-    master_key: [u8; KEY_LEN],
+    seed: [u8; KEY_LEN],
 }
 
 impl fmt::Debug for RngTree {
@@ -76,24 +76,23 @@ impl RngTree {
     /// Generates an RNG tree by reading its seed from the supplied RNG.
     pub fn new<R: RngCore + CryptoRng>(csrng: &mut R) -> Self {
         let mut rng_tree = RngTree::default();
-        csrng.fill_bytes(rng_tree.seed_mut());
+        csrng.fill_bytes(&mut rng_tree.seed);
         rng_tree
     }
 
     /// Restores a tree from the seed.
-    pub fn from_seed(bytes: [u8; KEY_LEN]) -> Self {
-        RngTree { master_key: bytes }
+    pub fn from_seed(bytes: &[u8]) -> Option<Self> {
+        if bytes.len() != KEY_LEN {
+            return None;
+        }
+        let mut rng_tree = RngTree::default();
+        rng_tree.seed.copy_from_slice(bytes);
+        Some(rng_tree)
     }
 
     /// Returns the tree seed.
     pub fn seed(&self) -> &[u8; KEY_LEN] {
-        &self.master_key
-    }
-
-    /// Returns a mutable reference to the tree seed.
-    /// This is useful when restoring the seed from the external source.
-    pub fn seed_mut(&mut self) -> &mut [u8; KEY_LEN] {
-        &mut self.master_key
+        &self.seed
     }
 
     /// Converts this tree into a cryptographically secure pseudo-random number generator
@@ -102,7 +101,7 @@ impl RngTree {
         let mut seed = <ChaChaRng as SeedableRng>::Seed::default();
         derive_key(
             seed.as_mut(),
-            &self.master_key,
+            &self.seed,
             Self::RNG_CONTEXT,
             Index::None,
         );
@@ -113,8 +112,8 @@ impl RngTree {
     pub fn child(&self, name: Name) -> Self {
         let mut rng_tree = RngTree::default();
         derive_key(
-            rng_tree.seed_mut(),
-            &self.master_key,
+            &mut rng_tree.seed,
+            &self.seed,
             Self::NAME_CONTEXT,
             Index::Bytes(name.0),
         );
@@ -125,8 +124,8 @@ impl RngTree {
     pub fn index(&self, index: u64) -> Self {
         let mut rng_tree = RngTree::default();
         derive_key(
-            rng_tree.seed_mut(),
-            &self.master_key,
+            &mut rng_tree.seed,
+            &self.seed,
             Self::INDEX_CONTEXT,
             Index::Number(index),
         );
@@ -136,7 +135,7 @@ impl RngTree {
 
 impl Drop for RngTree {
     fn drop(&mut self) {
-        let handle = ClearOnDrop::new(&mut self.master_key);
+        let handle = ClearOnDrop::new(&mut self.seed);
         drop(handle);
     }
 }
