@@ -294,14 +294,10 @@ impl Name {
     /// and should not contain zero bytes.
     ///
     /// [`MAX_NAME_LEN`]: constant.MAX_NAME_LEN.html
-    // This should become a `const fn` once the corresponding feature stabilizes.
     pub fn new(name: &str) -> Self {
         let byte_len = name.as_bytes().len();
         assert!(byte_len <= SALT_LEN, "name too long, 0..=16 bytes expected");
-        assert!(
-            name.as_bytes().iter().all(|&byte| byte > 0),
-            "string contains null chars"
-        );
+        assert!(!name.as_bytes().contains(&0), "string contains null chars");
 
         let mut bytes = [0; SALT_LEN];
         bytes[..byte_len].copy_from_slice(name.as_bytes());
@@ -363,5 +359,14 @@ mod tests {
         tree.child(Name::new("i32")).fill(&mut i32_buffer);
         tree.child(Name::new("u128")).fill(&mut u128_buffer);
         tree.child(Name::new("vec")).fill(&mut vec_buffer[..]);
+    }
+
+    #[test]
+    #[should_panic(expected = "string contains null chars")]
+    fn name_with_null_chars_cannot_be_created() {
+        let tree = SecretTree::new(&mut thread_rng());
+        let name = Name::new("some\0name");
+        let mut bytes = [0_u8; 32];
+        tree.child(name).fill(&mut bytes);
     }
 }
