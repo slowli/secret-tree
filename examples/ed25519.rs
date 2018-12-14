@@ -2,7 +2,7 @@ extern crate ed25519_dalek as ed25519;
 extern crate hex;
 extern crate pwbox;
 extern crate rand;
-extern crate rng_tree;
+extern crate secret_tree;
 extern crate sha2;
 extern crate toml;
 
@@ -11,8 +11,8 @@ use pwbox::{
     rcrypto::{RustCrypto, Scrypt},
     Eraser, Suite,
 };
-use rand::{thread_rng, Rng};
-use rng_tree::{Name, RngTree};
+use rand::thread_rng;
+use secret_tree::{Name, SecretTree};
 use sha2::Sha512;
 
 use std::fmt;
@@ -20,11 +20,11 @@ use std::fmt;
 struct Keys {
     consensus_keys: Keypair,
     service_keys: Keypair,
-    other_secrets: Vec<u64>,
+    other_secrets: Vec<u128>,
 }
 
 impl Keys {
-    pub fn new(tree: &RngTree) -> Self {
+    pub fn new(tree: &SecretTree) -> Self {
         let consensus = tree.child(Name::new("consensus"));
         let service = tree.child(Name::new("service"));
         let other = tree.child(Name::new("other"));
@@ -32,7 +32,12 @@ impl Keys {
         Keys {
             consensus_keys: Keypair::generate::<Sha512, _>(&mut consensus.rng()),
             service_keys: Keypair::generate::<Sha512, _>(&mut service.rng()),
-            other_secrets: (0..5).map(|i| other.index(i).rng().gen()).collect(),
+            other_secrets: (0..5)
+                .map(|i| {
+                    let mut buffer = [0_u128];
+                    other.index(i).fill(&mut buffer);
+                    buffer[0]
+                }).collect(),
         }
     }
 }
@@ -55,20 +60,20 @@ impl fmt::Display for Keys {
 fn main() {
     // Generate a RNG tree randomly.
     let mut rng = thread_rng();
-    let tree = RngTree::new(&mut rng);
+    let tree = SecretTree::new(&mut rng);
     let keys = Keys::new(&tree);
     println!("Original keys: {:#}\n", keys);
     let public_keys = (keys.consensus_keys.public, keys.service_keys.public);
 
-    // Assume that we have securely persisted the RNG tree (e.g., with password encryption).
-    let password = "correct horse battery staple";
+    // Assume that we have securely persisted the RNG tree (e.g., with passphrase encryption).
+    let passphrase = "correct horse battery staple";
     let secured_store = RustCrypto::build_box(&mut rng)
         .kdf(if cfg!(debug_assertions) {
             // Ultra-light parameters to get the test run fast in the debug mode.
             Scrypt::custom(6, 16)
         } else {
             Scrypt::default()
-        }).seal(password, tree.seed())
+        }).seal(passphrase, tree.seed())
         .unwrap();
     drop(tree);
 
@@ -76,7 +81,7 @@ fn main() {
     eraser.add_suite::<RustCrypto>();
     let secured_store = eraser.erase(&secured_store).unwrap();
     println!(
-        "Password-encrypted RNG tree:\n{}",
+        "Passphrase-encrypted RNG tree (TOML):\n{}",
         toml::to_string(&secured_store).unwrap()
     );
 
@@ -84,9 +89,9 @@ fn main() {
     let seed = eraser
         .restore(&secured_store)
         .unwrap()
-        .open(password)
+        .open(passphrase)
         .unwrap();
-    let tree = RngTree::from_seed(&seed).unwrap();
+    let tree = SecretTree::from_seed(&seed).unwrap();
 
     let keys = Keys::new(&tree);
     assert_eq!(

@@ -3,8 +3,11 @@
 use blake2_rfc::blake2b::Blake2b;
 use byteorder::{ByteOrder, LittleEndian};
 
-/// Byte length of a derived key.
-pub const KEY_LEN: usize = 32;
+/// Byte length of a `RngTree` seed.
+// Blake2b specification states that it produces outputs in range 1..=64 bytes;
+// libsodium supports 16..=64 byte outputs. We only use 32-byte outputs; this
+// is the size of the `ChaChaRng` seed.
+pub const SEED_LEN: usize = 32;
 
 /// Byte length of a context variable.
 // This length is half of what is supported by Blake2b (16 bytes),
@@ -12,31 +15,43 @@ pub const KEY_LEN: usize = 32;
 // need more internally and do not expose context to users.
 pub const CONTEXT_LEN: usize = 8;
 
-/// Byte length of salt supplied to the Blake2b initialization block.
+/// Byte length of salt in the Blake2b initialization block.
 pub const SALT_LEN: usize = 16;
-/// Byte length of personalization data supplied to the Blake2b initialization block.
-const MAX_CONTEXT_LEN: usize = 16;
 
-struct Blake2bParams {
-    digest_len: u8,
-    key_len: u8,
-    salt: [u64; 2],
-    personalization: [u8; MAX_CONTEXT_LEN],
-}
+struct Blake2bParams([u64; 8]);
 
 impl Blake2bParams {
-    fn to_block(&self) -> [u64; 8] {
-        let mut block = [0_u64; 8];
-        block[0] = u64::from(self.digest_len);
-        block[0] += u64::from(self.key_len) << 8;
-        block[0] += 1 << 16; // fanout
-        block[0] += 1 << 24; // max depth
-
-        block[4] = self.salt[0];
-        block[5] = self.salt[1];
-        block[6] = LittleEndian::read_u64(&self.personalization[..8]);
-        block[7] = LittleEndian::read_u64(&self.personalization[8..]);
+    fn new() -> Self {
+        let mut block = Blake2bParams([0; 8]);
+        block.0[0] = 0x0101_0000; // encode fanout and max depth
         block
+    }
+
+    fn digest_len(&mut self, digest_len: u8) -> &mut Self {
+        self.0[0] &= !0xff;
+        self.0[0] |= u64::from(digest_len);
+        self
+    }
+
+    fn key_len(&mut self, key_len: u8) -> &mut Self {
+        self.0[0] &= !0xff00;
+        self.0[0] |= u64::from(key_len) << 8;
+        self
+    }
+
+    fn salt(&mut self, salt: [u64; 2]) -> &mut Self {
+        self.0[4] = salt[0];
+        self.0[5] = salt[1];
+        self
+    }
+
+    fn personalization(&mut self, personalization: [u8; 8]) -> &mut Self {
+        self.0[6] = LittleEndian::read_u64(&personalization);
+        self
+    }
+
+    fn build(&self) -> [u64; 8] {
+        self.0
     }
 }
 
@@ -62,28 +77,27 @@ impl Index {
 
 pub fn derive_key(
     output: &mut [u8],
-    key: &[u8; KEY_LEN],
-    context: [u8; CONTEXT_LEN],
     index: Index,
+    context: [u8; CONTEXT_LEN],
+    key: &[u8; SEED_LEN],
 ) {
     assert!(
         output.len() >= 16 && output.len() <= 64,
-        "invalid output length, 16..=64 expected"
+        "invalid output length, 16..=64 bytes expected"
     );
 
-    let mut personalization = [0; MAX_CONTEXT_LEN];
-    personalization[..context.len()].copy_from_slice(&context);
+    let params = Blake2bParams::new()
+        .digest_len(output.len() as u8)
+        .key_len(SEED_LEN as u8)
+        .salt(index.to_salt())
+        .personalization(context)
+        .build();
 
-    let params = Blake2bParams {
-        digest_len: output.len() as u8,
-        key_len: KEY_LEN as u8,
-        salt: index.to_salt(),
-        personalization,
-    };
-
-    let mut digest = Blake2b::with_parameter_block(&params.to_block());
+    let mut digest = Blake2b::with_parameter_block(&params);
     digest.update(key);
     digest.update(&[0_u8; 96]); // key padding: 3 * 32 bytes
+
+    // `digest` isn't zeroed on drop, so technically, we've got a potential secret leak here.
     let digest = digest.finalize();
     assert_eq!(digest.len(), output.len());
     output.copy_from_slice(digest.as_bytes());
@@ -117,14 +131,14 @@ fn sodium_test_vectors_64byte_output() {
          199104563d308cf8d4c6b27bbb759ded232f5bdb7c367dd632a9677320dfe416",
     ];
 
-    let mut key = [0_u8; KEY_LEN];
+    let mut key = [0_u8; SEED_LEN];
     for (i, byte) in key.iter_mut().enumerate() {
         *byte = i as u8;
     }
 
     let mut output = [0_u8; 64];
     for (i, &exp) in EXP.iter().enumerate() {
-        derive_key(&mut output, &key, CTX, Index::Number(i as u64));
+        derive_key(&mut output, Index::Number(i as u64), CTX, &key);
         assert_eq!(hex::encode(&output.as_ref()), exp);
     }
 }
@@ -144,7 +158,7 @@ fn sodium_test_vectors_varying_len_output() {
         "66efa5dfe3efd4cc8ca25f2d622c97a20a192d7add965f26b002b7eb81aae4203c0e5f07fd945845",
     ];
 
-    let mut key = [0_u8; KEY_LEN];
+    let mut key = [0_u8; SEED_LEN];
     for (i, byte) in key.iter_mut().enumerate() {
         *byte = i as u8;
     }
@@ -152,7 +166,7 @@ fn sodium_test_vectors_varying_len_output() {
     for &exp in EXP.iter() {
         let byte_size = exp.len() / 2;
         let mut output = vec![0; byte_size];
-        derive_key(&mut output, &key, CTX, Index::Number(byte_size as u64));
+        derive_key(&mut output, Index::Number(byte_size as u64), CTX, &key);
         assert_eq!(hex::encode(&output), exp);
     }
 }
