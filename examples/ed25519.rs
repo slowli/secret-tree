@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! Example how to store a `SecretTree` seed in the passphrase-encrypted form and use it
+//! to derive heterogeneous keys.
+
 extern crate ed25519_dalek as ed25519;
 extern crate hex;
 extern crate pwbox;

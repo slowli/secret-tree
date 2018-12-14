@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Hierarchical key derivation with Blake2b and random number generators.
+//! Hierarchical secret derivation with Blake2b and random number generators.
 //!
 //! # How it works
 //!
-//! This crate provides [`SecretTree`]s - structures that are produced from a 32-byte seed and
+//! This crate provides [`SecretTree`] – a structure produced from a 32-byte seed that
 //! may be converted into a secret key or a cryptographically secure
 //! pseudo-random number generator (CSPRNG).
 //! Besides that, an `SecretTree` can produce child trees, which are
 //! identified by a string [`Name`] or an integer index. This enables creating
 //! *hierarchies* of secrets (like `some_secret/0`, `some_secret/1` and `other_secret/foo/1/bar`),
-//! which are ultimately derived from a single `SecretTree`. It's enough to securely store
+//! which are ultimately derived from a single `SecretTree`. It’s enough to securely store
 //! the seed of this root tree (e.g., in a passphrase-encrypted form) to recreate all secrets.
 //!
 //! The derived secrets cannot be linked; leakage of a derived secret does not compromise
@@ -30,7 +30,7 @@
 //!
 //! # Implementation details
 //!
-//! `SecretTree` uses the [Blake2b] keyed hash function to derive the following data:
+//! `SecretTree` uses the [Blake2b] keyed hash function to derive the following kinds of data:
 //!
 //! - secret key
 //! - CSPRNG seed (the RNG used is [`ChaChaRng`])
@@ -126,10 +126,25 @@ mod kdf;
 pub use kdf::SEED_LEN;
 use kdf::{derive_key, Index, CONTEXT_LEN, SALT_LEN};
 
-/// Maximum byte length of a `Name`.
+/// Maximum byte length of a `Name` (16).
 pub const MAX_NAME_LEN: usize = SALT_LEN;
 
 /// Seeded structure that can be used to produce secrets and child `SecretTree`s.
+///
+/// # Usage
+///
+/// During the program lifecycle, a root `SecretTree` should be restored from
+/// a secure persistent form (e.g., a passphrase-encrypted file) and then used to derive
+/// child trees and secrets. On the first use, the root should be initialized from a CSPRNG, such
+/// as `rand::thread_rng()`. The tree is not needed during the program execution and can
+/// be safely dropped after deriving necessary secrets (which zeroes out the tree seed).
+///
+/// It is possible to modify the derivation hierarchy over the course of program evolution
+/// by adding new secrets or abandoning the existing ones.
+/// However, the purpose of any given tree path should be fixed; that is, if some version
+/// of a program used path `foo/bar` to derive an Ed25519 keypair, a newer version
+/// shouldn’t use `foo/bar` to derive an AES-128 key. Violating this rule may lead
+/// to leaking the secret.
 ///
 /// # Examples
 ///
@@ -151,7 +166,7 @@ pub const MAX_NAME_LEN: usize = SALT_LEN;
 ///     .map(|i| child_store.index(i).rng().gen())
 ///     .collect();
 ///
-/// // The tree is compactly serialized as a single 32-byte seed.
+/// // The tree is compactly stored as a single 32-byte seed.
 /// let seed = *tree.seed();
 /// drop(tree);
 ///
@@ -177,7 +192,7 @@ impl SecretTree {
     const NAME_CONTEXT: [u8; CONTEXT_LEN] = *b"name\0\0\0\0";
     const INDEX_CONTEXT: [u8; CONTEXT_LEN] = *b"index\0\0\0";
 
-    /// Generates an RNG tree by sampling its seed from the supplied RNG.
+    /// Generates a tree by sampling its seed from the supplied RNG.
     pub fn new<R: RngCore + CryptoRng>(rng: &mut R) -> Self {
         let mut secret_tree = SecretTree { seed: [0; 32] };
         rng.fill_bytes(&mut secret_tree.seed);
@@ -268,15 +283,17 @@ impl Drop for SecretTree {
     }
 }
 
-/// Name of an `SecretTree`.
+/// Name of a `SecretTree`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Name([u8; SALT_LEN]);
 
 impl Name {
     /// Creates a new `Name`.
     ///
-    /// The supplied string should be no more than `MAX_NAME_LEN` bytes in length
+    /// The supplied string should be no more than [`MAX_NAME_LEN`] bytes in length
     /// and should not contain zero bytes.
+    ///
+    /// [`MAX_NAME_LEN`]: constant.MAX_NAME_LEN.html
     // This should become a `const fn` once the corresponding feature stabilizes.
     pub fn new(name: &str) -> Self {
         let byte_len = name.as_bytes().len();

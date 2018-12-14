@@ -25,7 +25,7 @@ pub const SEED_LEN: usize = 32;
 
 /// Byte length of a context variable.
 // This length is half of what is supported by Blake2b (16 bytes),
-// but is compatible with the key derivation in `libsodium`. We don't
+// but is compatible with the key derivation in `libsodium`. We don’t
 // need more internally and do not expose context to users.
 pub const CONTEXT_LEN: usize = 8;
 
@@ -111,7 +111,7 @@ pub fn derive_key(
     digest.update(key);
     digest.update(&[0_u8; 96]); // key padding: 3 * 32 bytes
 
-    // `digest` isn't zeroed on drop, so technically, we've got a potential secret leak here.
+    // `digest` isn’t zeroed on drop, so technically, we’ve got a potential leak here.
     let digest = digest.finalize();
     assert_eq!(digest.len(), output.len());
     output.copy_from_slice(digest.as_bytes());
