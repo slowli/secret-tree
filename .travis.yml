@@ -34,5 +34,13 @@ script:
   - cargo clippy --tests --examples -- -D warnings
   - cargo test --tests
   - cargo test --doc
-  - cargo run --release --example ed25519 > /dev/null
+  - cargo run --example ed25519 > /dev/null
   - cargo clean --doc && cargo doc --no-deps && cargo deadlinks --dir target/doc
+
+deploy:
+  provider: pages
+  local-dir: target/doc
+  skip-cleanup: true
+  github-token: $GITHUB_TOKEN
+  on:
+    branch: master
