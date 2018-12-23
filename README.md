@@ -4,7 +4,8 @@
 [![License: Apache-2.0](https://img.shields.io/github/license/slowli/secret-tree.svg)](https://github.com/slowli/secret-tree/blob/master/LICENSE)
 ![rust 1.30.0+ required](https://img.shields.io/badge/rust-1.30.0+-blue.svg)
 
-**Documentation:** [![crate docs (master)](https://img.shields.io/badge/master-yellow.svg?label=docs)](https://slowli.github.io/secret-tree/secret_tree/) 
+**Documentation:** [![Docs.rs](https://docs.rs/secret-tree/badge.svg)](https://docs.rs/secret-tree/)
+[![crate docs (master)](https://img.shields.io/badge/master-yellow.svg?label=docs)](https://slowli.github.io/secret-tree/secret_tree/) 
 
 `secret-tree` allows to derive multiple secrets from a single seed value in a secure and forward-compatible way.
 The derivation procedure is hierarchical: a seed can be used to derive child seeds, which have the same functionality
