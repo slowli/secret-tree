@@ -369,4 +369,14 @@ mod tests {
         let mut bytes = [0_u8; 32];
         tree.child(name).fill(&mut bytes);
     }
+
+    #[test]
+    fn buffers_with_different_size_should_be_unrelated() {
+        let tree = SecretTree::new(&mut thread_rng());
+        let mut bytes = [0_u8; 16];
+        tree.child(Name::new("foo")).fill(&mut bytes);
+        let mut other_bytes = [0_u8; 32];
+        tree.child(Name::new("foo")).fill(&mut other_bytes);
+        assert!(bytes.iter().zip(&other_bytes).any(|(&x, &y)| x != y));
+    }
 }
