@@ -3,6 +3,10 @@ name = "secret-tree"
 version = "0.1.0"
 authors = ["Alex Ostrovski <ostrovski.alex@gmail.com>"]
 license = "Apache-2.0"
+keywords = ["derivation", "blake2b", "cryptography"]
+categories = ["cryprography"]
+description = "Hierarchical secret derivation with Blake2b"
+repository = "https://github.com/slowli/secret-tree"
 
 [dependencies]
 byteorder = "1.2.7"
