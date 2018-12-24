@@ -16,8 +16,9 @@
 
 use blake2_rfc::blake2b::Blake2b;
 use byteorder::{ByteOrder, LittleEndian};
+use clear_on_drop::clear_stack_on_return;
 
-/// Byte length of a `RngTree` seed.
+/// Byte length of a `RngTree` seed (32).
 // Blake2b specification states that it produces outputs in range 1..=64 bytes;
 // libsodium supports 16..=64 byte outputs. We only use 32-byte outputs; this
 // is the size of the `ChaChaRng` seed.
@@ -107,14 +108,16 @@ pub fn derive_key(
         .personalization(context)
         .build();
 
-    let mut digest = Blake2b::with_parameter_block(&params);
-    digest.update(key);
-    digest.update(&[0_u8; 96]); // key padding: 3 * 32 bytes
-
-    // `digest` isn’t zeroed on drop, so technically, we’ve got a potential leak here.
-    let digest = digest.finalize();
-    assert_eq!(digest.len(), output.len());
-    output.copy_from_slice(digest.as_bytes());
+    // Overwriting a few pages of stack should be enough: the local vars
+    // (`Blake2b` and `Blake2bResult`) have sizes < 500 bytes in total.
+    clear_stack_on_return(4, || {
+        let mut digest = Blake2b::with_parameter_block(&params);
+        digest.update(key);
+        digest.update(&[0_u8; 96]); // key padding: 3 * 32 bytes
+        let digest = digest.finalize();
+        assert_eq!(digest.len(), output.len());
+        output.copy_from_slice(digest.as_bytes());
+    });
 }
 
 #[test]
