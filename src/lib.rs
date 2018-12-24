@@ -283,7 +283,11 @@ impl Drop for SecretTree {
     }
 }
 
-/// Name of a `SecretTree`.
+/// Name of a child `SecretTree`.
+///
+/// Used in the `child()` method of [`SecretTree`]; see its documentation for more info.
+///
+/// [`SecretTree`]: struct.SecretTree.html
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Name([u8; SALT_LEN]);
 
