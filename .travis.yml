@@ -32,7 +32,7 @@ script:
   - cargo check --tests --examples
   - cargo test --lib --tests
   - cargo test --doc
-  - cargo run --no-default-features --features rand-0.6 --example ed25519 > /dev/null
+  - cargo run --no-default-features --features rand-06 --example ed25519 > /dev/null
   - cargo clean --doc && cargo doc --no-deps && cargo deadlinks --dir target/doc
 
 deploy:

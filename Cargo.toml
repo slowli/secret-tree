@@ -28,11 +28,11 @@ pwbox = { version = "0.1.4", default-features = false, features = ["rust-crypto"
 toml = "0.5.1"
 
 [features]
-default = ["rand-0.7"]
-"rand-0.6" = ["rand6", "rand6_chacha"]
-"rand-0.7" = ["rand", "rand_chacha"]
+default = ["rand-07"]
+rand-06 = ["rand6", "rand6_chacha"]
+rand-07 = ["rand", "rand_chacha"]
 
 [[example]]
 name = "ed25519"
 path = "examples/ed25519.rs"
-required-features = ["rand-0.6"]
+required-features = ["rand-06"]

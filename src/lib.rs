@@ -102,9 +102,9 @@
 //! # Crate features
 //!
 //! The crate supports both `rand` v0.6 and v0.7 (the latter is used by default).
-//! To signal the version, specify a `rand-0.6` or `rand-0.7` feature (naturally, they are mutually
-//! exclusive). `rand-0.7` is on by default, so it is necessary to specify
-//! `default-features = false` if using `rand-0.6`.
+//! To signal the version, specify a `rand-06` or `rand-07` feature (naturally, they are mutually
+//! exclusive). `rand-07` is on by default, so it is necessary to specify
+//! `default-features = false` if using `rand-06`.
 //!
 //! [libsodium]: https://download.libsodium.org/doc/key_derivation
 //! [Blake2b]: https://tools.ietf.org/html/rfc7693
@@ -130,14 +130,14 @@ use clear_on_drop::ClearOnDrop;
 // and even this may not work (v0.7 may be used elsewhere).
 //
 // Older versions:
-#[cfg(feature = "rand-0.6")]
+#[cfg(feature = "rand-06")]
 use rand6::{AsByteSliceMut, CryptoRng, RngCore, SeedableRng};
-#[cfg(feature = "rand-0.6")]
+#[cfg(feature = "rand-06")]
 use rand6_chacha::ChaChaRng;
 // Newer versions:
-#[cfg(feature = "rand-0.7")]
+#[cfg(feature = "rand-07")]
 use rand::{AsByteSliceMut, CryptoRng, RngCore, SeedableRng};
-#[cfg(feature = "rand-0.7")]
+#[cfg(feature = "rand-07")]
 use rand_chacha::ChaChaRng;
 
 use std::fmt;
