@@ -102,8 +102,8 @@
 //! # Crate features
 //!
 //! The crate supports both `rand` v0.6 and v0.7 (the latter is used by default).
-//! To signal the version, specify `rand-0.6` or `rand-0.7` feature (naturally, they are mutually
-//! exclusive). Since `rand-0.7` is on by default, it is necessary to specify
+//! To signal the version, specify a `rand-0.6` or `rand-0.7` feature (naturally, they are mutually
+//! exclusive). `rand-0.7` is on by default, so it is necessary to specify
 //! `default-features = false` if using `rand-0.6`.
 //!
 //! [libsodium]: https://download.libsodium.org/doc/key_derivation
