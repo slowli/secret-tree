@@ -1,4 +1,4 @@
-// Copyright 2018 Alex Ostrovski
+// Copyright 2019 Alex Ostrovski
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -65,8 +65,8 @@
 //! from C to Rust):
 //!
 //! ```
-//! # extern crate rand;
-//! use rand::{ChaChaRng, SeedableRng};
+//! use rand::{SeedableRng};
+//! use rand_chacha::ChaChaRng;
 //! # fn crypto_kdf_derive_from_key(_: &mut [u8], _: u64, _: &[u8; 8], _: &[u8; 32]) {}
 //!
 //! let parent_seed: [u8; 32] = // ...
@@ -99,6 +99,13 @@
 //!   `rng()` and `fill()` methods consume the tree instance, which makes it harder to reuse
 //!   the same RNG for multiple purposes (which is not intended).
 //!
+//! # Crate features
+//!
+//! The crate supports both `rand` v0.6 and v0.7 (the latter is used by default).
+//! To signal the version, specify a `rand-0.6` or `rand-0.7` feature (naturally, they are mutually
+//! exclusive). `rand-0.7` is on by default, so it is necessary to specify
+//! `default-features = false` if using `rand-0.6`.
+//!
 //! [libsodium]: https://download.libsodium.org/doc/key_derivation
 //! [Blake2b]: https://tools.ietf.org/html/rfc7693
 //! [Pedersen commitments]: https://en.wikipedia.org/wiki/Commitment_scheme
@@ -108,16 +115,30 @@
 
 #![deny(missing_docs, missing_debug_implementations)]
 
-extern crate blake2_rfc;
-extern crate byteorder;
-extern crate clear_on_drop;
-extern crate rand;
-
-#[cfg(test)]
-extern crate hex;
-
 use clear_on_drop::ClearOnDrop;
-use rand::{AsByteSliceMut, ChaChaRng, CryptoRng, RngCore, SeedableRng};
+
+// Conditionally specified `rand` dependencies. It would be tempting to just specify
+//
+// ```toml
+// [dependencies]
+// rand = ">=0.6, <=0.7"
+// ```
+//
+// in the crate manifest, but this doesn't really work, since `rand` types are present
+// in the public interface of `SecretTree`. If one wants to use the crate with rand v0.6,
+// he has no other choice than to manually downgrade via `cargo update rand:0.7.x --precise 0.6.x`,
+// and even this may not work (v0.7 may be used elsewhere).
+//
+// Older versions:
+#[cfg(feature = "rand-0.6")]
+use rand6::{AsByteSliceMut, CryptoRng, RngCore, SeedableRng};
+#[cfg(feature = "rand-0.6")]
+use rand6_chacha::ChaChaRng;
+// Newer versions:
+#[cfg(feature = "rand-0.7")]
+use rand::{AsByteSliceMut, CryptoRng, RngCore, SeedableRng};
+#[cfg(feature = "rand-0.7")]
+use rand_chacha::ChaChaRng;
 
 use std::fmt;
 
@@ -149,8 +170,6 @@ pub const MAX_NAME_LEN: usize = SALT_LEN;
 /// # Examples
 ///
 /// ```
-/// # extern crate rand;
-/// # extern crate secret_tree;
 /// use secret_tree::{SecretTree, Name};
 /// use rand::{Rng, thread_rng};
 ///

@@ -1,4 +1,4 @@
-// Copyright 2018 Alex Ostrovski
+// Copyright 2019 Alex Ostrovski
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,22 +15,13 @@
 //! Example how to store a `SecretTree` seed in the passphrase-encrypted form and use it
 //! to derive heterogeneous keys.
 
-extern crate ed25519_dalek as ed25519;
-extern crate hex;
-extern crate pwbox;
-extern crate rand;
-extern crate secret_tree;
-extern crate sha2;
-extern crate toml;
-
 use ed25519::Keypair;
 use pwbox::{
     rcrypto::{RustCrypto, Scrypt},
     Eraser, Suite,
 };
-use rand::thread_rng;
+use rand6::thread_rng;
 use secret_tree::{Name, SecretTree};
-use sha2::Sha512;
 
 use std::fmt;
 
@@ -47,14 +38,15 @@ impl Keys {
         let other = tree.child(Name::new("other"));
 
         Keys {
-            consensus_keys: Keypair::generate::<Sha512, _>(&mut consensus.rng()),
-            service_keys: Keypair::generate::<Sha512, _>(&mut service.rng()),
+            consensus_keys: Keypair::generate(&mut consensus.rng()),
+            service_keys: Keypair::generate(&mut service.rng()),
             other_secrets: (0..5)
                 .map(|i| {
                     let mut buffer = [0_u128];
                     other.index(i).fill(&mut buffer);
                     buffer[0]
-                }).collect(),
+                })
+                .collect(),
         }
     }
 }
@@ -90,7 +82,8 @@ fn main() {
             Scrypt::custom(6, 16)
         } else {
             Scrypt::default()
-        }).seal(passphrase, tree.seed())
+        })
+        .seal(passphrase, tree.seed())
         .unwrap();
     drop(tree);
 
