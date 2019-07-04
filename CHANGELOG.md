@@ -5,6 +5,11 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed
+
+- Use Rust 2018 edition.
+- Support `rand` v0.6 and 0.7.
+
 ## 0.1.1 - 2018-12-24
 
 ### Security
