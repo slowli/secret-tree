@@ -45,7 +45,8 @@ impl Keys {
                     let mut buffer = [0_u128];
                     other.index(i).fill(&mut buffer);
                     buffer[0]
-                }).collect(),
+                })
+                .collect(),
         }
     }
 }
@@ -81,7 +82,8 @@ fn main() {
             Scrypt::custom(6, 16)
         } else {
             Scrypt::default()
-        }).seal(passphrase, tree.seed())
+        })
+        .seal(passphrase, tree.seed())
         .unwrap();
     drop(tree);
 
@@ -108,4 +110,3 @@ fn main() {
     );
     println!("Restored keys: {:#}", keys);
 }
-
