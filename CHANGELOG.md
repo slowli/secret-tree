@@ -5,6 +5,8 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## 0.2.0-pre.0 - 2019-07-04
+
 ### Changed
 
 - Use Rust 2018 edition.
