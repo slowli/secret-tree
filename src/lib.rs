@@ -1,4 +1,4 @@
-// Copyright 2018 Alex Ostrovski
+// Copyright 2019 Alex Ostrovski
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -65,7 +65,6 @@
 //! from C to Rust):
 //!
 //! ```
-//! # extern crate rand;
 //! use rand::{ChaChaRng, SeedableRng};
 //! # fn crypto_kdf_derive_from_key(_: &mut [u8], _: u64, _: &[u8; 8], _: &[u8; 32]) {}
 //!
@@ -108,16 +107,9 @@
 
 #![deny(missing_docs, missing_debug_implementations)]
 
-extern crate blake2_rfc;
-extern crate byteorder;
-extern crate clear_on_drop;
-extern crate rand;
-
-#[cfg(test)]
-extern crate hex;
-
 use clear_on_drop::ClearOnDrop;
-use rand::{AsByteSliceMut, ChaChaRng, CryptoRng, RngCore, SeedableRng};
+use rand_chacha::ChaChaRng;
+use rand::{AsByteSliceMut, CryptoRng, RngCore, SeedableRng};
 
 use std::fmt;
 
@@ -149,8 +141,6 @@ pub const MAX_NAME_LEN: usize = SALT_LEN;
 /// # Examples
 ///
 /// ```
-/// # extern crate rand;
-/// # extern crate secret_tree;
 /// use secret_tree::{SecretTree, Name};
 /// use rand::{Rng, thread_rng};
 ///
