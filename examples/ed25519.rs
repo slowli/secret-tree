@@ -20,7 +20,7 @@ use pwbox::{
     rcrypto::{RustCrypto, Scrypt},
     Eraser, Suite,
 };
-use rand::thread_rng;
+use rand6::thread_rng;
 use secret_tree::{Name, SecretTree};
 
 use std::fmt;

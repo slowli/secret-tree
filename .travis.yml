@@ -25,9 +25,6 @@ install:
   - rustfmt -V
   - rustup component add clippy
   - cargo clippy -V
-  # Sort of a hack to get the example working. `ed25519-dalek` library used in the example
-  # requires rand ^0.6, which we support, but don't download by default.
-  - cargo update rand:0.7.0 --precise 0.6.5
 
 script:
   - cargo fmt -- --check
@@ -35,7 +32,7 @@ script:
   - cargo check --tests --examples
   - cargo test --lib --tests
   - cargo test --doc
-  - cargo run --example ed25519 > /dev/null
+  - cargo run --no-default-features --features rand-0.6 --example ed25519 > /dev/null
   - cargo clean --doc && cargo doc --no-deps && cargo deadlinks --dir target/doc
 
 deploy:
