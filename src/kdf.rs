@@ -162,6 +162,7 @@ fn sodium_test_vectors_64byte_output() {
 
 #[test]
 fn sodium_test_vectors_varying_len_output() {
+    use std::vec;
     use hex;
 
     const CTX: [u8; CONTEXT_LEN] = *b"KDF test";
