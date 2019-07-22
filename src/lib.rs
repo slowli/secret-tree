@@ -380,7 +380,7 @@ mod tests {
         let mut u128_buffer = [0_u128];
         // Using `Vec` to store secrets is usually a bad idea because of its placement in heap;
         // here it is used just to test capabilities.
-        let mut vec_buffer = vec![0_16; 24];
+        let mut vec_buffer = vec![0_u16; 24];
 
         let tree = SecretTree::new(&mut thread_rng());
         tree.child(Name::new("u8")).fill(&mut u8_buffer[..]);
