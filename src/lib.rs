@@ -335,8 +335,8 @@ impl Name {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::vec;
     use rand::{thread_rng, Rng};
+    use std::vec;
 
     #[test]
     fn children_with_same_bytes_in_key() {
