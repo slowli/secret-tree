@@ -154,6 +154,9 @@ use kdf::{derive_key, Index, CONTEXT_LEN, SALT_LEN};
 /// Maximum byte length of a `Name` (16).
 pub const MAX_NAME_LEN: usize = SALT_LEN;
 
+/// Alias for an array that contains seed bytes.
+pub type Seed = [u8; SEED_LEN];
+
 /// Seeded structure that can be used to produce secrets and child `SecretTree`s.
 ///
 /// # Usage
@@ -200,7 +203,7 @@ pub const MAX_NAME_LEN: usize = SALT_LEN;
 /// assert_eq!(first_secret, restored_secret);
 /// ```
 pub struct SecretTree {
-    seed: [u8; SEED_LEN],
+    seed: Seed,
 }
 
 impl fmt::Debug for SecretTree {
@@ -233,7 +236,7 @@ impl SecretTree {
     }
 
     /// Returns the tree seed.
-    pub fn seed(&self) -> &[u8; SEED_LEN] {
+    pub fn seed(&self) -> &Seed {
         &self.seed
     }
 

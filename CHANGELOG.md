@@ -8,6 +8,7 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 ### Added
 
 - Mark the crate as not needing the standard library.
+- Alias for seed array.
 
 ## 0.2.0-pre.0 - 2019-07-04
 
