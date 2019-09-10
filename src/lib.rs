@@ -65,8 +65,8 @@
 //! from C to Rust):
 //!
 //! ```
-//! use rand::{SeedableRng};
-//! use rand_chacha::ChaChaRng;
+//! use rand_7::{SeedableRng};
+//! use rand_7_chacha::ChaChaRng;
 //! # fn crypto_kdf_derive_from_key(_: &mut [u8], _: u64, _: &[u8; 8], _: &[u8; 32]) {}
 //!
 //! let parent_seed: [u8; 32] = // ...
@@ -134,17 +134,19 @@ use clear_on_drop::ClearOnDrop;
 // and even this may not work (v0.7 may be used elsewhere).
 //
 // Older versions:
-#[cfg(feature = "rand-06")]
-use rand6::{AsByteSliceMut, CryptoRng, RngCore, SeedableRng};
-#[cfg(feature = "rand-06")]
-use rand6_chacha::ChaChaRng;
+#[cfg(feature = "rand-v6")]
+use rand_6 as rand;
+#[cfg(feature = "rand-v6")]
+use rand_6_chacha as rand_chacha;
 // Newer versions:
-#[cfg(feature = "rand-07")]
-use rand::{AsByteSliceMut, CryptoRng, RngCore, SeedableRng};
-#[cfg(feature = "rand-07")]
-use rand_chacha::ChaChaRng;
+#[cfg(feature = "rand-v7")]
+use rand_7 as rand;
+#[cfg(feature = "rand-v7")]
+use rand_7_chacha as rand_chacha;
 
 use core::fmt;
+use rand::{AsByteSliceMut, CryptoRng, RngCore, SeedableRng};
+use rand_chacha::ChaChaRng;
 
 mod kdf;
 
@@ -178,7 +180,7 @@ pub type Seed = [u8; SEED_LEN];
 ///
 /// ```
 /// use secret_tree::{SecretTree, Name};
-/// use rand::{Rng, thread_rng};
+/// use rand_7::{Rng, thread_rng};
 ///
 /// let tree = SecretTree::new(&mut thread_rng());
 /// let mut first_secret = [0_u8; 32];
