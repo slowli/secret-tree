@@ -76,7 +76,7 @@ fn main() {
 
     // Assume that we have securely persisted the RNG tree (e.g., with passphrase encryption).
     let passphrase = "correct horse battery staple";
-    let secured_store = RustCrypto::build_box(&mut rng)
+    let secured_store = RustCrypto::build_box(&mut rand::thread_rng())
         .kdf(if cfg!(debug_assertions) {
             // Ultra-light parameters to get the test run fast in the debug mode.
             Scrypt::custom(6, 16)
