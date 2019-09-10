@@ -2,7 +2,7 @@
 
 [![Travis Build Status](https://img.shields.io/travis/com/slowli/secret-tree/master.svg?label=Linux%20Build)](https://travis-ci.com/slowli/secret-tree) 
 [![License: Apache-2.0](https://img.shields.io/github/license/slowli/secret-tree.svg)](https://github.com/slowli/secret-tree/blob/master/LICENSE)
-![rust 1.34.0+ required](https://img.shields.io/badge/rust-1.34.0+-blue.svg)
+![rust 1.36.0+ required](https://img.shields.io/badge/rust-1.36.0+-blue.svg)
 
 **Documentation:** [![Docs.rs](https://docs.rs/secret-tree/badge.svg)](https://docs.rs/secret-tree/)
 [![crate docs (master)](https://img.shields.io/badge/master-yellow.svg?label=docs)](https://slowli.github.io/secret-tree/secret_tree/) 
