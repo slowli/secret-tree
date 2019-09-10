@@ -132,17 +132,22 @@ use clear_on_drop::ClearOnDrop;
 // in the public interface of `SecretTree`. If one wants to use the crate with rand v0.6,
 // he has no other choice than to manually downgrade via `cargo update rand:0.7.x --precise 0.6.x`,
 // and even this may not work (v0.7 may be used elsewhere).
-//
-// Older versions:
-#[cfg(feature = "rand-06")]
-use rand6::{AsByteSliceMut, CryptoRng, RngCore, SeedableRng};
-#[cfg(feature = "rand-06")]
-use rand6_chacha::ChaChaRng;
-// Newer versions:
-#[cfg(feature = "rand-07")]
-use rand::{AsByteSliceMut, CryptoRng, RngCore, SeedableRng};
-#[cfg(feature = "rand-07")]
-use rand_chacha::ChaChaRng;
+mod imports {
+    // Older versions:
+    #[cfg(feature = "rand-06")]
+    pub use rand6 as rand;
+    #[cfg(feature = "rand-06")]
+    pub use rand6_chacha as rand_chacha;
+    // Newer versions:
+    #[cfg(feature = "rand-07")]
+    pub use rand;
+    #[cfg(feature = "rand-07")]
+    pub use rand_chacha;
+}
+use self::imports::{
+    rand::{AsByteSliceMut, CryptoRng, RngCore, SeedableRng},
+    rand_chacha::ChaChaRng,
+};
 
 use core::fmt;
 
