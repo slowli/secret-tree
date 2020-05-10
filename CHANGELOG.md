@@ -5,12 +5,16 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Removed
+
+- Remove support of `rand` 0.6.
+
 ## 0.2.0 - 2019-09-10
 
 ### Added
 
 - Mark the crate as not needing the standard library.
-- Alias for seed array.
+- Add a type alias for the seed array.
 
 ## 0.2.0-pre.0 - 2019-07-04
 
