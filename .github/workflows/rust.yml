@@ -53,7 +53,7 @@ jobs:
           args: --all
 
       - name: Check docs
-        run: cargo clean --doc && cargo doc --all-features --no-deps && cargo deadlinks --dir target/doc
+        run: cargo clean --doc && cargo doc --no-deps && cargo deadlinks --dir target/doc
 
   check-compatibility:
     runs-on: ubuntu-latest
@@ -95,7 +95,7 @@ jobs:
           key: ${{ runner.os }}-cargo-build-target
 
       - name: Build docs
-        run: cargo doc --all-features --no-deps
+        run: cargo doc --no-deps
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@releases/v3
