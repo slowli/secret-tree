@@ -18,9 +18,9 @@
 use ed25519::Keypair;
 use pwbox::{
     rcrypto::{RustCrypto, Scrypt},
-    Eraser, Suite,
+    Eraser, ScryptParams, Suite,
 };
-use rand6::thread_rng;
+use rand::thread_rng;
 use secret_tree::{Name, SecretTree};
 
 use std::fmt;
@@ -79,7 +79,7 @@ fn main() {
     let secured_store = RustCrypto::build_box(&mut rand::thread_rng())
         .kdf(if cfg!(debug_assertions) {
             // Ultra-light parameters to get the test run fast in the debug mode.
-            Scrypt::custom(6, 16)
+            Scrypt(ScryptParams::custom(6, 16))
         } else {
             Scrypt::default()
         })

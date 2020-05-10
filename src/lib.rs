@@ -99,13 +99,6 @@
 //!   `rng()` and `fill()` methods consume the tree instance, which makes it harder to reuse
 //!   the same RNG for multiple purposes (which is not intended).
 //!
-//! # Crate features
-//!
-//! The crate supports both `rand` v0.6 and v0.7 (the latter is used by default).
-//! To signal the version, specify a `rand-06` or `rand-07` feature (naturally, they are mutually
-//! exclusive). `rand-07` is on by default, so it is necessary to specify
-//! `default-features = false` if using `rand-06`.
-//!
 //! [libsodium]: https://download.libsodium.org/doc/key_derivation
 //! [Blake2b]: https://tools.ietf.org/html/rfc7693
 //! [Pedersen commitments]: https://en.wikipedia.org/wiki/Commitment_scheme
@@ -114,40 +107,14 @@
 //! [`Name`]: struct.Name.html
 
 #![no_std]
-#![deny(missing_docs, missing_debug_implementations)]
+#![warn(missing_docs, missing_debug_implementations)]
 
 #[cfg(test)]
 extern crate std;
 
 use clear_on_drop::ClearOnDrop;
-
-// Conditionally specified `rand` dependencies. It would be tempting to just specify
-//
-// ```toml
-// [dependencies]
-// rand = ">=0.6, <=0.7"
-// ```
-//
-// in the crate manifest, but this doesn't really work, since `rand` types are present
-// in the public interface of `SecretTree`. If one wants to use the crate with rand v0.6,
-// he has no other choice than to manually downgrade via `cargo update rand:0.7.x --precise 0.6.x`,
-// and even this may not work (v0.7 may be used elsewhere).
-mod imports {
-    // Older versions:
-    #[cfg(feature = "rand-06")]
-    pub use rand6 as rand;
-    #[cfg(feature = "rand-06")]
-    pub use rand6_chacha as rand_chacha;
-    // Newer versions:
-    #[cfg(feature = "rand-07")]
-    pub use rand;
-    #[cfg(feature = "rand-07")]
-    pub use rand_chacha;
-}
-use self::imports::{
-    rand::{AsByteSliceMut, CryptoRng, RngCore, SeedableRng},
-    rand_chacha::ChaChaRng,
-};
+use rand::{AsByteSliceMut, CryptoRng, RngCore, SeedableRng};
+use rand_chacha::ChaChaRng;
 
 use core::fmt;
 
