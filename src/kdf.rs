@@ -126,9 +126,9 @@ fn sodium_test_vectors_64byte_output() {
     }
 
     let mut output = [0_u8; 64];
-    for (i, &exp) in EXP.iter().enumerate() {
+    for (i, exp) in EXP.iter().enumerate() {
         derive_key(&mut output, Index::Number(i as u64), CTX, &key);
-        assert_eq!(output, exp);
+        assert_eq!(&output as &[u8], exp as &[u8]);
     }
 }
 
