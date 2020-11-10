@@ -104,6 +104,7 @@
 //! [Pedersen commitments]: https://en.wikipedia.org/wiki/Commitment_scheme
 
 #![no_std]
+#![doc(html_root_url = "https://docs.rs/secret-tree/0.2.0")]
 #![warn(missing_docs, missing_debug_implementations)]
 
 #[cfg(test)]

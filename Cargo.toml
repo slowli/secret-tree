@@ -29,6 +29,7 @@ hex-literal = "0.3.1"
 ed25519 = { package = "ed25519-dalek", version = "1.0.1" }
 pwbox = { version = "0.3.0", default-features = false, features = ["rust-crypto"] }
 toml = "0.5.7"
+version-sync = "0.9"
 
 [[example]]
 name = "ed25519"

@@ -7,7 +7,7 @@
 **Documentation:** [![Docs.rs](https://docs.rs/secret-tree/badge.svg)](https://docs.rs/secret-tree/)
 [![crate docs (master)](https://img.shields.io/badge/master-yellow.svg?label=docs)](https://slowli.github.io/secret-tree/secret_tree/) 
 
-`secret-tree` allows to derive multiple secrets from a single seed value in a secure and forward-compatible way.
+`secret-tree` allows deriving multiple secrets from a single seed value in a secure and forward-compatible way.
 The derivation procedure is hierarchical: a seed can be used to derive child seeds, which have the same functionality
 as the original.
 
@@ -21,6 +21,13 @@ as the original.
   that can be derived from the seed).
 
 ## Usage
+
+Add this to your `Crate.toml`:
+
+```toml
+[dependencies]
+secret-tree = "0.2.0"
+```
 
 See crate documentation for more details how to use the crate.
 
