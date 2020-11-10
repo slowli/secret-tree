@@ -1,4 +1,4 @@
-// Copyright 2019 Alex Ostrovski
+// Copyright 2020 Alex Ostrovski
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -102,9 +102,6 @@
 //! [libsodium]: https://download.libsodium.org/doc/key_derivation
 //! [Blake2b]: https://tools.ietf.org/html/rfc7693
 //! [Pedersen commitments]: https://en.wikipedia.org/wiki/Commitment_scheme
-//! [`ChaChaRng`]: https://docs.rs/rand_chacha/0.1.0/rand_chacha/
-//! [`SecretTree`]: struct.SecretTree.html
-//! [`Name`]: struct.Name.html
 
 #![no_std]
 #![warn(missing_docs, missing_debug_implementations)]
@@ -136,7 +133,7 @@ pub type Seed = [u8; SEED_LEN];
 /// During the program lifecycle, a root `SecretTree` should be restored from
 /// a secure persistent form (e.g., a passphrase-encrypted file) and then used to derive
 /// child trees and secrets. On the first use, the root should be initialized from a CSPRNG, such
-/// as `rand::thread_rng()`. The tree is not needed during the program execution and can
+/// as [`rand::thread_rng()`]. The tree is not needed during the program execution and can
 /// be safely dropped after deriving necessary secrets (which zeroes out the tree seed).
 ///
 /// It is possible to modify the derivation hierarchy over the course of program evolution
@@ -181,8 +178,8 @@ pub struct SecretTree {
 }
 
 impl fmt::Debug for SecretTree {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("SecretTree").field(&"_").finish()
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.debug_tuple("SecretTree").field(&"_").finish()
     }
 }
 
@@ -219,15 +216,14 @@ impl SecretTree {
     ///
     /// # Security
     ///
-    /// [`fill()`]  should be preferred if the secret allows it. While using a CSPRNG to generate
-    /// secrets is theoretically sound, it introduces a new entity that may leak information.
+    /// [`Self::fill()`] should be preferred if the secret allows it. While using a CSPRNG
+    /// to generate secrets is theoretically sound, it introduces a new entity that
+    /// may leak information.
     /// `fill()` is especially useful if the filled buffer implements zeroing on drop;
     /// the state of a CSPRNG generator returned by `rng()` **is not** zeroed on drop and thus
     /// creates a potential attack vector. (However theoretical it may be; `ChaChaRng`
     /// has a notably small state size - ~160 bytes, so it may be better localized
     /// and have lower risk to be accessed by the adversary than other CSPRNG implementations.)
-    ///
-    /// [`fill()`]: #method.fill
     pub fn rng(self) -> ChaChaRng {
         let mut seed = <ChaChaRng as SeedableRng>::Seed::default();
         derive_key(seed.as_mut(), Index::None, Self::RNG_CONTEXT, &self.seed);
@@ -236,11 +232,11 @@ impl SecretTree {
 
     /// Fills the specified buffer with a key derived from the seed of this tree.
     ///
-    /// The buffer must be equivalent to `16..=64` bytes; the method panics otherwise.
-    /// Use [`rng()`] if the buffer size may be outside these bounds,
-    /// or if the secret must be derived in a more complex way.
+    /// # Panics
     ///
-    /// [`rng()`]: #method.rng
+    /// Panics if the buffer does not have length `16..=64` bytes. Use [`Self::rng()`]
+    /// if the buffer size may be outside these bounds, or if the secret must be derived
+    /// in a more complex way.
     pub fn fill<T: AsByteSliceMut + ?Sized>(self, dest: &mut T) {
         derive_key(
             dest.as_byte_slice_mut(),
@@ -279,8 +275,6 @@ impl SecretTree {
 /// Name of a child `SecretTree`.
 ///
 /// Used in the `child()` method of [`SecretTree`]; see its documentation for more info.
-///
-/// [`SecretTree`]: struct.SecretTree.html
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Name([u8; SALT_LEN]);
 
@@ -289,12 +283,10 @@ impl Name {
     ///
     /// The supplied string should be no more than [`MAX_NAME_LEN`] bytes in length
     /// and should not contain zero bytes.
-    ///
-    /// [`MAX_NAME_LEN`]: constant.MAX_NAME_LEN.html
     pub fn new(name: &str) -> Self {
         let byte_len = name.as_bytes().len();
         assert!(byte_len <= SALT_LEN, "name too long, 0..=16 bytes expected");
-        assert!(!name.as_bytes().contains(&0), "string contains null chars");
+        assert!(!name.as_bytes().contains(&0), "name contains null chars");
 
         let mut bytes = [0; SALT_LEN];
         bytes[..byte_len].copy_from_slice(name.as_bytes());
@@ -360,7 +352,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "string contains null chars")]
+    #[should_panic(expected = "name contains null chars")]
     fn name_with_null_chars_cannot_be_created() {
         let tree = SecretTree::new(&mut thread_rng());
         let name = Name::new("some\0name");

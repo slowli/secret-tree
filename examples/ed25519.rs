@@ -52,8 +52,8 @@ impl Keys {
 }
 
 impl fmt::Display for Keys {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut debug_struct = f.debug_struct("Keys");
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug_struct = formatter.debug_struct("Keys");
         debug_struct.field(
             "consensus",
             &hex::encode(self.consensus_keys.public.as_bytes()),
@@ -76,7 +76,7 @@ fn main() {
 
     // Assume that we have securely persisted the RNG tree (e.g., with passphrase encryption).
     let passphrase = "correct horse battery staple";
-    let secured_store = RustCrypto::build_box(&mut rand::thread_rng())
+    let secured_store = RustCrypto::build_box(&mut rng)
         .kdf(if cfg!(debug_assertions) {
             // Ultra-light parameters to get the test run fast in the debug mode.
             Scrypt(ScryptParams::custom(6, 16))
