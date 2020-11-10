@@ -22,13 +22,14 @@ use pwbox::{
 };
 use rand::thread_rng;
 use secret_tree::{Name, SecretTree};
+use zeroize::Zeroizing;
 
-use std::fmt;
+use std::{fmt, slice};
 
 struct Keys {
     consensus_keys: Keypair,
     service_keys: Keypair,
-    other_secrets: Vec<u128>,
+    other_secrets: Vec<Zeroizing<u128>>,
 }
 
 impl Keys {
@@ -42,9 +43,9 @@ impl Keys {
             service_keys: Keypair::generate(&mut service.rng()),
             other_secrets: (0..5)
                 .map(|i| {
-                    let mut buffer = [0_u128];
-                    other.index(i).fill(&mut buffer);
-                    buffer[0]
+                    let mut value = Zeroizing::new(0_u128);
+                    other.index(i).fill(slice::from_mut(&mut *value));
+                    value
                 })
                 .collect(),
         }
@@ -60,7 +61,7 @@ impl fmt::Display for Keys {
         );
         debug_struct.field("service", &hex::encode(self.service_keys.public.as_bytes()));
         for (i, secret) in self.other_secrets.iter().enumerate() {
-            debug_struct.field(&format!("other/{}", i), secret);
+            debug_struct.field(&format!("other/{}", i), &*secret as &u128);
         }
         debug_struct.finish()
     }

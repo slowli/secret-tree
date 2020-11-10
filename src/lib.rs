@@ -155,27 +155,30 @@ pub type Seed = [u8; SEED_LEN];
 /// ```
 /// use secret_tree::{SecretTree, Name};
 /// use rand::{Rng, thread_rng};
+/// use zeroize::Zeroizing;
 ///
 /// let tree = SecretTree::new(&mut thread_rng());
-/// let mut first_secret = [0_u8; 32];
-/// tree.child(Name::new("first")).fill(&mut first_secret);
+/// let mut first_secret = Zeroizing::new([0_u8; 32]);
+/// // Don't forget to securely store secrets! Here, we wrap them
+/// // in a container that automatically zeroes the secret on drop.
+/// tree.child(Name::new("first")).fill(&mut *first_secret);
 ///
 /// // We can derive hierarchical secrets. The secrets below
 /// // follow logical paths `sequence/0`, `sequence/1`, .., `sequence/4`
 /// // relative to the `tree`.
 /// let child_store = tree.child(Name::new("sequence"));
-/// let more_secrets: Vec<[u64; 4]> = (0..5)
-///     .map(|i| child_store.index(i).rng().gen())
+/// let more_secrets: Vec<Zeroizing<[u64; 4]>> = (0..5)
+///     .map(|i| Zeroizing::new(child_store.index(i).rng().gen()))
 ///     .collect();
 ///
 /// // The tree is compactly stored as a single 32-byte seed.
-/// let seed = *tree.seed();
+/// let seed = Zeroizing::new(*tree.seed());
 /// drop(tree);
 ///
 /// // If we restore the tree from the seed, we can restore all derived secrets.
-/// let tree = SecretTree::from_seed(&seed).unwrap();
-/// let mut restored_secret = [0_u8; 32];
-/// tree.child(Name::new("first")).fill(&mut restored_secret);
+/// let tree = SecretTree::from_seed(&*seed).unwrap();
+/// let mut restored_secret = Zeroizing::new([0_u8; 32]);
+/// tree.child(Name::new("first")).fill(&mut *restored_secret);
 /// assert_eq!(first_secret, restored_secret);
 /// ```
 #[derive(Zeroize)]
