@@ -112,9 +112,9 @@
 #[cfg(test)]
 extern crate std;
 
-use clear_on_drop::ClearOnDrop;
 use rand::{AsByteSliceMut, CryptoRng, RngCore, SeedableRng};
 use rand_chacha::ChaChaRng;
+use zeroize::Zeroize;
 
 use core::fmt;
 
@@ -174,6 +174,8 @@ pub type Seed = [u8; SEED_LEN];
 /// tree.child(Name::new("first")).fill(&mut restored_secret);
 /// assert_eq!(first_secret, restored_secret);
 /// ```
+#[derive(Zeroize)]
+#[zeroize(drop)]
 pub struct SecretTree {
     seed: Seed,
 }
@@ -271,13 +273,6 @@ impl SecretTree {
             &self.seed,
         );
         secret_tree
-    }
-}
-
-impl Drop for SecretTree {
-    fn drop(&mut self) {
-        let handle = ClearOnDrop::new(&mut self.seed);
-        drop(handle);
     }
 }
 
