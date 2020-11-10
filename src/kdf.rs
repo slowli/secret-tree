@@ -1,4 +1,4 @@
-// Copyright 2018 Alex Ostrovski
+// Copyright 2020 Alex Ostrovski
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -74,6 +74,7 @@ pub fn derive_key(
 #[test]
 fn sodium_test_vectors_64byte_output() {
     use hex_literal::hex;
+    use std::convert::TryFrom;
 
     const CTX: [u8; CONTEXT_LEN] = *b"KDF test";
     const EXP: &[[u8; 64]] = &[
@@ -121,7 +122,7 @@ fn sodium_test_vectors_64byte_output() {
 
     let mut key = [0_u8; SEED_LEN];
     for (i, byte) in key.iter_mut().enumerate() {
-        *byte = i as u8;
+        *byte = u8::try_from(i).unwrap();
     }
 
     let mut output = [0_u8; 64];
@@ -134,7 +135,7 @@ fn sodium_test_vectors_64byte_output() {
 #[test]
 fn sodium_test_vectors_varying_len_output() {
     use hex_literal::hex;
-    use std::vec;
+    use std::{convert::TryFrom, vec};
 
     const CTX: [u8; CONTEXT_LEN] = *b"KDF test";
     const EXP: &[&[u8]] = &[
@@ -149,7 +150,7 @@ fn sodium_test_vectors_varying_len_output() {
 
     let mut key = [0_u8; SEED_LEN];
     for (i, byte) in key.iter_mut().enumerate() {
-        *byte = i as u8;
+        *byte = u8::try_from(i).unwrap();
     }
 
     for &exp in EXP.iter() {

@@ -106,6 +106,12 @@
 #![no_std]
 #![doc(html_root_url = "https://docs.rs/secret-tree/0.2.0")]
 #![warn(missing_docs, missing_debug_implementations)]
+#![warn(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::missing_errors_doc,
+    clippy::must_use_candidate,
+    clippy::module_name_repetitions
+)]
 
 #[cfg(test)]
 extern crate std;
