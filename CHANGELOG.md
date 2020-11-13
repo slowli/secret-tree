@@ -5,9 +5,18 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed
+
+- Use the `zeroize` crate instead of `clear_on_drop` and `blake2b` instead of
+  `blake2b-rfc`.
+
 ### Removed
 
 - Remove support of `rand` 0.6.
+
+### Fixed
+
+- Fix `no_std` mode by switching off unnecessary dependency features. 
 
 ## 0.2.0 - 2019-09-10
 
