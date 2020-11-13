@@ -5,10 +5,18 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- Add `SecretTree::create_secret` as a high-level alternative to `fill()`.
+
 ### Changed
 
-- Use the `zeroize` crate instead of `clear_on_drop` and `blake2b` instead of
+- Use the `secrecy` crate instead of `clear_on_drop` and `blake2b` instead of
   `blake2b-rfc`.
+- Change `Seed` type to `Secret<[u8; 32]>` (that is, wrap it in `Secret`).
+- Make `from_seed` constructor accept `Seed`. The previous `from_seed` constructor
+  is renamed to `from_slice`, and it now returns a `Result<_, TryFromSliceError>`
+  instead of an `Option`.
 
 ### Removed
 
