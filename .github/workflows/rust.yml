@@ -140,6 +140,13 @@ jobs:
           path: target
           key: ${{ runner.os }}-cargo-build-target
 
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2020-10-24
+          profile: minimal
+          override: true
+
       - name: Build docs
         run: cargo doc --no-deps
 
