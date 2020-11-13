@@ -118,20 +118,20 @@ extern crate std;
 
 use rand::{AsByteSliceMut, CryptoRng, RngCore, SeedableRng};
 use rand_chacha::ChaChaRng;
-use zeroize::Zeroize;
+use secrecy::{zeroize::Zeroize, ExposeSecret, Secret};
 
-use core::fmt;
+use core::{array::TryFromSliceError, convert::TryInto};
 
 mod kdf;
 
 pub use kdf::SEED_LEN;
 use kdf::{derive_key, Index, CONTEXT_LEN, SALT_LEN};
 
-/// Maximum byte length of a `Name` (16).
+/// Maximum byte length of a [`Name`] (16).
 pub const MAX_NAME_LEN: usize = SALT_LEN;
 
-/// Alias for an array that contains seed bytes.
-pub type Seed = [u8; SEED_LEN];
+/// Alias for a [`Secret`] array that contains seed bytes.
+pub type Seed = Secret<[u8; SEED_LEN]>;
 
 /// Seeded structure that can be used to produce secrets and child `SecretTree`s.
 ///
@@ -155,42 +155,40 @@ pub type Seed = [u8; SEED_LEN];
 /// ```
 /// use secret_tree::{SecretTree, Name};
 /// use rand::{Rng, thread_rng};
-/// use zeroize::Zeroizing;
+/// use secrecy::{ExposeSecret, Secret};
 ///
 /// let tree = SecretTree::new(&mut thread_rng());
-/// let mut first_secret = Zeroizing::new([0_u8; 32]);
 /// // Don't forget to securely store secrets! Here, we wrap them
 /// // in a container that automatically zeroes the secret on drop.
-/// tree.child(Name::new("first")).fill(&mut *first_secret);
+/// let first_secret: Secret<[u8; 32]> = tree
+///     .child(Name::new("first"))
+///     .create_secret();
 ///
 /// // We can derive hierarchical secrets. The secrets below
 /// // follow logical paths `sequence/0`, `sequence/1`, .., `sequence/4`
 /// // relative to the `tree`.
 /// let child_store = tree.child(Name::new("sequence"));
-/// let more_secrets: Vec<Zeroizing<[u64; 4]>> = (0..5)
-///     .map(|i| Zeroizing::new(child_store.index(i).rng().gen()))
+/// let more_secrets: Vec<Secret<[u64; 4]>> = (0..5)
+///     .map(|i| Secret::new(child_store.index(i).rng().gen()))
 ///     .collect();
 ///
 /// // The tree is compactly stored as a single 32-byte seed.
-/// let seed = Zeroizing::new(*tree.seed());
+/// let seed = tree.seed().to_owned();
 /// drop(tree);
 ///
 /// // If we restore the tree from the seed, we can restore all derived secrets.
-/// let tree = SecretTree::from_seed(&*seed).unwrap();
-/// let mut restored_secret = Zeroizing::new([0_u8; 32]);
-/// tree.child(Name::new("first")).fill(&mut *restored_secret);
-/// assert_eq!(first_secret, restored_secret);
+/// let tree = SecretTree::from_seed(seed);
+/// let restored_secret: Secret<[u8; 32]> = tree
+///     .child(Name::new("first"))
+///     .create_secret();
+/// assert_eq!(
+///     first_secret.expose_secret(),
+///     restored_secret.expose_secret()
+/// );
 /// ```
-#[derive(Zeroize)]
-#[zeroize(drop)]
+#[derive(Debug)]
 pub struct SecretTree {
     seed: Seed,
-}
-
-impl fmt::Debug for SecretTree {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.debug_tuple("SecretTree").field(&"_").finish()
-    }
 }
 
 impl SecretTree {
@@ -201,19 +199,24 @@ impl SecretTree {
 
     /// Generates a tree by sampling its seed from the supplied RNG.
     pub fn new<R: RngCore + CryptoRng>(rng: &mut R) -> Self {
-        let mut secret_tree = SecretTree { seed: [0; 32] };
-        rng.fill_bytes(&mut secret_tree.seed);
-        secret_tree
+        let mut seed = [0; 32];
+        rng.fill_bytes(&mut seed);
+        Self {
+            seed: Secret::new(seed),
+        }
     }
 
-    /// Restores a tree from the seed.
-    pub fn from_seed(bytes: &[u8]) -> Option<Self> {
-        if bytes.len() != SEED_LEN {
-            return None;
-        }
-        let mut secret_tree = SecretTree { seed: [0; 32] };
-        secret_tree.seed.copy_from_slice(bytes);
-        Some(secret_tree)
+    /// Creates a tree from the seed.
+    pub fn from_seed(seed: Seed) -> Self {
+        Self { seed }
+    }
+
+    /// Restores a tree from the seed specified as a byte slice.
+    pub fn from_slice(bytes: &[u8]) -> Result<Self, TryFromSliceError> {
+        let seed: [u8; 32] = bytes.try_into()?;
+        Ok(Self {
+            seed: Secret::new(seed),
+        })
     }
 
     /// Returns the tree seed.
@@ -236,7 +239,12 @@ impl SecretTree {
     /// and have lower risk to be accessed by the adversary than other CSPRNG implementations.)
     pub fn rng(self) -> ChaChaRng {
         let mut seed = <ChaChaRng as SeedableRng>::Seed::default();
-        derive_key(seed.as_mut(), Index::None, Self::RNG_CONTEXT, &self.seed);
+        derive_key(
+            seed.as_mut(),
+            Index::None,
+            Self::RNG_CONTEXT,
+            self.seed.expose_secret(),
+        );
         ChaChaRng::from_seed(seed)
     }
 
@@ -252,39 +260,57 @@ impl SecretTree {
             dest.as_byte_slice_mut(),
             Index::None,
             Self::FILL_BYTES_CONTEXT,
-            &self.seed,
+            self.seed.expose_secret(),
         );
         dest.to_le();
     }
 
+    /// Creates a secret by creating a buffer and filling it with a key derived from
+    /// the seed of this tree. Essentially, this is a more high-level wrapper around
+    /// [`Self::fill()`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if `T` does not have length `16..=64` bytes. Use [`Self::rng()`]
+    /// if the buffer size may be outside these bounds, or if the secret must be derived
+    /// in a more complex way.
+    pub fn create_secret<T>(self) -> Secret<T>
+    where
+        T: AsByteSliceMut + Default + Zeroize,
+    {
+        let mut secret_value = T::default();
+        self.fill(&mut secret_value);
+        Secret::new(secret_value)
+    }
+
     /// Produces a child with the specified string identifier.
     pub fn child(&self, name: Name) -> Self {
-        let mut secret_tree = SecretTree { seed: [0; 32] };
+        let mut child_seed = [0_u8; 32];
         derive_key(
-            &mut secret_tree.seed,
+            &mut child_seed,
             Index::Bytes(name.0),
             Self::NAME_CONTEXT,
-            &self.seed,
+            self.seed.expose_secret(),
         );
-        secret_tree
+        Self::from_seed(Secret::new(child_seed))
     }
 
     /// Produces a child with the specified integer index.
     pub fn index(&self, index: u64) -> Self {
-        let mut secret_tree = SecretTree { seed: [0; 32] };
+        let mut child_seed = [0_u8; 32];
         derive_key(
-            &mut secret_tree.seed,
+            &mut child_seed,
             Index::Number(index),
             Self::INDEX_CONTEXT,
-            &self.seed,
+            self.seed.expose_secret(),
         );
-        secret_tree
+        Self::from_seed(Secret::new(child_seed))
     }
 }
 
-/// Name of a child `SecretTree`.
+/// Name of a child [`SecretTree`].
 ///
-/// Used in the `child()` method of [`SecretTree`]; see its documentation for more info.
+/// Used in [`SecretTree::child()`]; see its documentation for more info.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Name([u8; SALT_LEN]);
 
@@ -317,7 +343,10 @@ mod tests {
         let tree = SecretTree::new(&mut thread_rng());
         let named_child = tree.child(name);
         let indexed_child = tree.index(index);
-        assert_ne!(named_child.seed, indexed_child.seed);
+        assert_ne!(
+            named_child.seed.expose_secret(),
+            indexed_child.seed.expose_secret()
+        );
     }
 
     #[test]
