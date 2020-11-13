@@ -212,6 +212,10 @@ impl SecretTree {
     }
 
     /// Restores a tree from the seed specified as a byte slice.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `bytes` has an invalid length (not [`SEED_LEN`]).
     pub fn from_slice(bytes: &[u8]) -> Result<Self, TryFromSliceError> {
         let seed: [u8; 32] = bytes.try_into()?;
         Ok(Self {
