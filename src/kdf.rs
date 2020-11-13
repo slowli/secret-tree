@@ -17,7 +17,7 @@
 use blake2::{digest::VariableOutput, VarBlake2b};
 use byteorder::{ByteOrder, LittleEndian};
 
-/// Byte length of a `RngTree` seed (32).
+/// Byte length of a [`Seed`](crate::Seed) (32).
 // Blake2b specification states that it produces outputs in range 1..=64 bytes;
 // libsodium supports 16..=64 byte outputs. We only use 32-byte outputs; this
 // is the size of the `ChaChaRng` seed.

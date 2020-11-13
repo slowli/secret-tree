@@ -21,15 +21,15 @@ use pwbox::{
     Eraser, ScryptParams, Suite,
 };
 use rand::thread_rng;
+use secrecy::{ExposeSecret, Secret};
 use secret_tree::{Name, SecretTree};
-use zeroize::Zeroizing;
 
-use std::{fmt, slice};
+use std::fmt;
 
 struct Keys {
     consensus_keys: Keypair,
     service_keys: Keypair,
-    other_secrets: Vec<Zeroizing<u128>>,
+    other_secrets: Vec<Secret<[u128; 1]>>,
 }
 
 impl Keys {
@@ -41,13 +41,7 @@ impl Keys {
         Keys {
             consensus_keys: Keypair::generate(&mut consensus.rng()),
             service_keys: Keypair::generate(&mut service.rng()),
-            other_secrets: (0..5)
-                .map(|i| {
-                    let mut value = Zeroizing::new(0_u128);
-                    other.index(i).fill(slice::from_mut(&mut *value));
-                    value
-                })
-                .collect(),
+            other_secrets: (0..5).map(|i| other.index(i).create_secret()).collect(),
         }
     }
 }
@@ -61,7 +55,7 @@ impl fmt::Display for Keys {
         );
         debug_struct.field("service", &hex::encode(self.service_keys.public.as_bytes()));
         for (i, secret) in self.other_secrets.iter().enumerate() {
-            debug_struct.field(&format!("other/{}", i), &*secret as &u128);
+            debug_struct.field(&format!("other/{}", i), &secret.expose_secret()[0]);
         }
         debug_struct.finish()
     }
@@ -84,7 +78,7 @@ fn main() {
         } else {
             Scrypt::default()
         })
-        .seal(passphrase, tree.seed())
+        .seal(passphrase, tree.seed().expose_secret())
         .unwrap();
     drop(tree);
 
@@ -102,7 +96,7 @@ fn main() {
         .unwrap()
         .open(passphrase)
         .unwrap();
-    let tree = SecretTree::from_seed(&seed).unwrap();
+    let tree = SecretTree::from_slice(&seed).unwrap();
 
     let keys = Keys::new(&tree);
     assert_eq!(
