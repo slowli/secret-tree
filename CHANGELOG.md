@@ -8,6 +8,8 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 ### Added
 
 - Add `SecretTree::create_secret` as a high-level alternative to `fill()`.
+- Make `Name::new()` method constant.
+- Implement `Display`, `AsRef<str>` and `FromStr` for `Name`.
 
 ### Changed
 

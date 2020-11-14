@@ -31,6 +31,10 @@ pwbox = { version = "0.3.0", default-features = false, features = ["rust-crypto"
 toml = "0.5.7"
 version-sync = "0.9"
 
+[features]
+default = ["std"]
+std = []
+
 [[example]]
 name = "ed25519"
 path = "examples/ed25519.rs"

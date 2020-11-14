@@ -76,7 +76,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.45.0
+          toolchain: 1.46.0
           profile: minimal
           override: true
 
@@ -89,7 +89,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: run
-          args: --no-default-features --example ed25519
+          args: --example ed25519
 
   # Checks that the crate actually builds without `std`. To do this,
   # we take a target (`thumbv7m-none-eabi`) that does not have `std` support.
