@@ -127,8 +127,9 @@ use secrecy::{zeroize::Zeroize, ExposeSecret, Secret};
 
 use core::{
     array::TryFromSliceError,
-    convert::{TryFrom, TryInto},
+    convert::TryInto,
     fmt,
+    str::{self, FromStr},
 };
 
 mod kdf;
@@ -349,8 +350,18 @@ macro_rules! zero_pad_array {
 
 /// Name of a child [`SecretTree`].
 ///
-/// Used in [`SecretTree::child()`]; see its documentation for more info.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Used in [`SecretTree::child()`]; see its documentation for more context.
+///
+/// An original `str` can be extracted from `Name` using [`AsRef`] / [`Display`](fmt::Display)
+/// implementations:
+///
+/// ```
+/// # use secret_tree::Name;
+/// const NAME: Name = Name::new("test_name");
+/// assert_eq!(NAME.as_ref(), "test_name");
+/// assert_eq!(NAME.to_string(), "test_name");
+/// ```
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Name([u8; SALT_LEN]);
 
 impl Name {
@@ -385,7 +396,7 @@ impl Name {
     ///
     /// Panics if `name` is overly long or contains null chars. Note that in order to make
     /// this method constant, the panic message for runtime calls is non-descriptive.
-    /// Use the [`TryFrom`] implementation if descriptive errors are a concern.
+    /// Use the [`FromStr`] implementation if descriptive errors are a concern.
     pub const fn new(name: &str) -> Self {
         let bytes = name.as_bytes();
         const_assert!(
@@ -397,10 +408,10 @@ impl Name {
     }
 }
 
-impl TryFrom<&str> for Name {
-    type Error = NameError;
+impl FromStr for Name {
+    type Err = NameError;
 
-    fn try_from(name: &str) -> Result<Self, Self::Error> {
+    fn from_str(name: &str) -> Result<Self, Self::Err> {
         let byte_len = name.as_bytes().len();
         if byte_len > SALT_LEN {
             return Err(NameError::TooLong);
@@ -412,6 +423,28 @@ impl TryFrom<&str> for Name {
         let mut bytes = [0; SALT_LEN];
         bytes[..byte_len].copy_from_slice(name.as_bytes());
         Ok(Self(bytes))
+    }
+}
+
+impl AsRef<str> for Name {
+    fn as_ref(&self) -> &str {
+        let str_len = self.0.iter().position(|&ch| ch == 0).unwrap_or(SALT_LEN);
+        unsafe {
+            // SAFETY: safe by construction; we only ever create `Name`s from valid UTF-8 sequences.
+            str::from_utf8_unchecked(&self.0[..str_len])
+        }
+    }
+}
+
+impl fmt::Debug for Name {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.debug_tuple("Name").field(&self.as_ref()).finish()
+    }
+}
+
+impl fmt::Display for Name {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str(self.as_ref())
     }
 }
 
@@ -505,7 +538,7 @@ mod tests {
 
     #[test]
     fn name_with_null_chars_error() {
-        let err = Name::try_from("some\0name").unwrap_err();
+        let err = Name::from_str("some\0name").unwrap_err();
         assert!(matches!(err, NameError::NullChar));
     }
 
@@ -517,7 +550,7 @@ mod tests {
 
     #[test]
     fn overly_long_name_error() {
-        let err = Name::try_from("Overly long name?").unwrap_err();
+        let err = Name::from_str("Overly long name?").unwrap_err();
         assert!(matches!(err, NameError::TooLong));
     }
 
@@ -543,8 +576,12 @@ mod tests {
             (Name::new("Overly long name"), b"Overly long name"),
         ];
 
-        for &(name, expected_bytes) in SAMPLES {
+        for (i, &(name, expected_bytes)) in SAMPLES.iter().enumerate() {
             assert_eq!(name.0, *expected_bytes);
+            let expected_str = &"Overly long name"[..i];
+            assert_eq!(name.to_string(), expected_str);
+            assert_eq!(name.as_ref(), expected_str);
+            assert!(format!("{:?}", name).contains(expected_str));
         }
     }
 
