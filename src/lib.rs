@@ -28,6 +28,11 @@
 //! The derived secrets cannot be linked; leakage of a derived secret does not compromise
 //! sibling secrets or the parent `SecretTree`.
 //!
+//! # Crate features
+//!
+//! The crate is `no_std`-compatible. There is optional `std` support enabled via the `std` feature,
+//! which is on by default.
+//!
 //! # Implementation details
 //!
 //! `SecretTree` uses the [Blake2b] keyed hash function to derive the following kinds of data:
@@ -103,7 +108,7 @@
 //! [Blake2b]: https://tools.ietf.org/html/rfc7693
 //! [Pedersen commitments]: https://en.wikipedia.org/wiki/Commitment_scheme
 
-#![no_std]
+#![cfg_attr(not(feature = "std"), no_std)]
 #![doc(html_root_url = "https://docs.rs/secret-tree/0.2.0")]
 #![warn(missing_docs, missing_debug_implementations)]
 #![warn(clippy::all, clippy::pedantic)]
@@ -113,19 +118,30 @@
     clippy::module_name_repetitions
 )]
 
-#[cfg(test)]
+#[cfg(all(not(feature = "std"), test))]
 extern crate std;
 
 use rand::{AsByteSliceMut, CryptoRng, RngCore, SeedableRng};
 use rand_chacha::ChaChaRng;
 use secrecy::{zeroize::Zeroize, ExposeSecret, Secret};
 
-use core::{array::TryFromSliceError, convert::TryInto};
+use core::{
+    array::TryFromSliceError,
+    convert::{TryFrom, TryInto},
+    fmt,
+};
 
 mod kdf;
 
 pub use kdf::SEED_LEN;
 use kdf::{derive_key, Index, CONTEXT_LEN, SALT_LEN};
+
+// TODO: replace with `assert` once https://github.com/rust-lang/rust/issues/51999 is stabilized.
+macro_rules! const_assert {
+    ($condition:expr, $msg:tt) => {
+        [$msg][!($condition) as usize];
+    };
+}
 
 /// Maximum byte length of a [`Name`] (16).
 pub const MAX_NAME_LEN: usize = SALT_LEN;
@@ -312,6 +328,25 @@ impl SecretTree {
     }
 }
 
+macro_rules! check_null_chars {
+    ($bytes:ident, $($index:tt)+) => {
+        $(
+            const_assert!(
+                $bytes.len() <= $index || $bytes[$index] != 0,
+                "name contains a null char"
+            );
+        )+
+    };
+}
+
+macro_rules! zero_pad_array {
+    ($bytes:ident, $($index:tt)+) => {
+        [
+            $(if $bytes.len() <= $index { 0 } else { $bytes[$index] },)+
+        ]
+    };
+}
+
 /// Name of a child [`SecretTree`].
 ///
 /// Used in [`SecretTree::child()`]; see its documentation for more info.
@@ -321,18 +356,86 @@ pub struct Name([u8; SALT_LEN]);
 impl Name {
     /// Creates a new `Name`.
     ///
-    /// The supplied string should be no more than [`MAX_NAME_LEN`] bytes in length
-    /// and should not contain zero bytes.
-    pub fn new(name: &str) -> Self {
+    /// The supplied string must be no more than [`MAX_NAME_LEN`] bytes in length
+    /// and must not contain null chars `'\0'`.
+    ///
+    /// This is a constant method, which perform all relevant checks during compilation in
+    /// a constant context:
+    ///
+    /// ```
+    /// # use secret_tree::Name;
+    /// const NAME: Name = Name::new("some_name");
+    /// ```
+    ///
+    /// For example, this won't compile since the name is too long (17 chars):
+    ///
+    /// ```compile_fail
+    /// # use secret_tree::Name;
+    /// const OVERLY_LONG_NAME: Name = Name::new("Overly long name!");
+    /// ```
+    ///
+    /// ...And this won't compile because the name contains a `\0` char:
+    ///
+    /// ```compile_fail
+    /// # use secret_tree::Name;
+    /// const NAME_WITH_ZERO_CHARS: Name = Name::new("12\03");
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if `name` is overly long or contains null chars. Note that in order to make
+    /// this method constant, the panic message for runtime calls is non-descriptive.
+    /// Use the [`TryFrom`] implementation if descriptive errors are a concern.
+    pub const fn new(name: &str) -> Self {
+        let bytes = name.as_bytes();
+        const_assert!(
+            bytes.len() <= SALT_LEN,
+            "name is too long, 0..=16 bytes expected"
+        );
+        check_null_chars!(bytes, 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15);
+        Name(zero_pad_array!(bytes, 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15))
+    }
+}
+
+impl TryFrom<&str> for Name {
+    type Error = NameError;
+
+    fn try_from(name: &str) -> Result<Self, Self::Error> {
         let byte_len = name.as_bytes().len();
-        assert!(byte_len <= SALT_LEN, "name too long, 0..=16 bytes expected");
-        assert!(!name.as_bytes().contains(&0), "name contains null chars");
+        if byte_len > SALT_LEN {
+            return Err(NameError::TooLong);
+        }
+        if name.as_bytes().contains(&0) {
+            return Err(NameError::NullChar);
+        }
 
         let mut bytes = [0; SALT_LEN];
         bytes[..byte_len].copy_from_slice(name.as_bytes());
-        Name(bytes)
+        Ok(Self(bytes))
     }
 }
+
+/// Errors that can occur when converting a `&str` into [`Name`].
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum NameError {
+    /// The string is too long. `Name`s should be 0..=16 bytes.
+    TooLong,
+    /// Name contains a null char `\0`.
+    NullChar,
+}
+
+impl fmt::Display for NameError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::TooLong => "name is too long, 0..=16 bytes expected",
+            Self::NullChar => "name contains a null char",
+        })
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for NameError {}
 
 #[cfg(test)]
 mod tests {
@@ -395,12 +498,54 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "name contains null chars")]
+    #[should_panic]
     fn name_with_null_chars_cannot_be_created() {
-        let tree = SecretTree::new(&mut thread_rng());
-        let name = Name::new("some\0name");
-        let mut bytes = [0_u8; 32];
-        tree.child(name).fill(&mut bytes);
+        let _name = Name::new("some\0name");
+    }
+
+    #[test]
+    fn name_with_null_chars_error() {
+        let err = Name::try_from("some\0name").unwrap_err();
+        assert!(matches!(err, NameError::NullChar));
+    }
+
+    #[test]
+    #[should_panic]
+    fn overly_long_name_cannot_be_created() {
+        let _name = Name::new("Overly long name?");
+    }
+
+    #[test]
+    fn overly_long_name_error() {
+        let err = Name::try_from("Overly long name?").unwrap_err();
+        assert!(matches!(err, NameError::TooLong));
+    }
+
+    #[test]
+    fn name_new_pads_input_with_zeros() {
+        const SAMPLES: &[(Name, &[u8; MAX_NAME_LEN])] = &[
+            (Name::new(""), b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"),
+            (Name::new("O"), b"O\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"),
+            (Name::new("Ov"), b"Ov\0\0\0\0\0\0\0\0\0\0\0\0\0\0"),
+            (Name::new("Ove"), b"Ove\0\0\0\0\0\0\0\0\0\0\0\0\0"),
+            (Name::new("Over"), b"Over\0\0\0\0\0\0\0\0\0\0\0\0"),
+            (Name::new("Overl"), b"Overl\0\0\0\0\0\0\0\0\0\0\0"),
+            (Name::new("Overly"), b"Overly\0\0\0\0\0\0\0\0\0\0"),
+            (Name::new("Overly "), b"Overly \0\0\0\0\0\0\0\0\0"),
+            (Name::new("Overly l"), b"Overly l\0\0\0\0\0\0\0\0"),
+            (Name::new("Overly lo"), b"Overly lo\0\0\0\0\0\0\0"),
+            (Name::new("Overly lon"), b"Overly lon\0\0\0\0\0\0"),
+            (Name::new("Overly long"), b"Overly long\0\0\0\0\0"),
+            (Name::new("Overly long "), b"Overly long \0\0\0\0"),
+            (Name::new("Overly long n"), b"Overly long n\0\0\0"),
+            (Name::new("Overly long na"), b"Overly long na\0\0"),
+            (Name::new("Overly long nam"), b"Overly long nam\0"),
+            (Name::new("Overly long name"), b"Overly long name"),
+        ];
+
+        for &(name, expected_bytes) in SAMPLES {
+            assert_eq!(name.0, *expected_bytes);
+        }
     }
 
     #[test]
