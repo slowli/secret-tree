@@ -26,7 +26,7 @@ Add this to your `Crate.toml`:
 
 ```toml
 [dependencies]
-secret-tree = "0.2.0"
+secret-tree = "0.3.0"
 ```
 
 See crate documentation for more details how to use the crate.
