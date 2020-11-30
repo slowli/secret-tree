@@ -109,7 +109,7 @@
 //! [Pedersen commitments]: https://en.wikipedia.org/wiki/Commitment_scheme
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![doc(html_root_url = "https://docs.rs/secret-tree/0.2.0")]
+#![doc(html_root_url = "https://docs.rs/secret-tree/0.3.0")]
 #![warn(missing_docs, missing_debug_implementations)]
 #![warn(clippy::all, clippy::pedantic)]
 #![allow(
