@@ -5,6 +5,8 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## 0.3.0 - 2020-11-30
+
 ### Added
 
 - Add `SecretTree::create_secret` as a high-level alternative to `fill()`.
