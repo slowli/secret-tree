@@ -16,7 +16,7 @@ repository = "https://github.com/slowli/secret-tree"
 [dependencies]
 # Public dependencies (present in the API exposed by the crate).
 rand = { version = "0.7.3", default-features = false }
-rand_chacha = { version = "0.2.2", default-features = false }
+rand_chacha = { version = "0.3.0", default-features = false }
 
 # Private dependencies.
 blake2 = { version = "0.9.1", default-features = false }
