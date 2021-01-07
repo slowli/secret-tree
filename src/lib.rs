@@ -121,7 +121,7 @@
 #[cfg(all(not(feature = "std"), test))]
 extern crate std;
 
-use rand::{AsByteSliceMut, CryptoRng, RngCore, SeedableRng};
+use rand::{CryptoRng, RngCore, SeedableRng};
 use rand_chacha::ChaChaRng;
 use secrecy::{zeroize::Zeroize, ExposeSecret, Secret};
 
@@ -132,10 +132,12 @@ use core::{
     str::{self, FromStr},
 };
 
+mod byte_slice;
 mod kdf;
 
-pub use kdf::SEED_LEN;
-use kdf::{derive_key, Index, CONTEXT_LEN, SALT_LEN};
+pub use crate::{byte_slice::AsByteSliceMut, kdf::SEED_LEN};
+
+use crate::kdf::{derive_key, Index, CONTEXT_LEN, SALT_LEN};
 
 // TODO: replace with `assert` once https://github.com/rust-lang/rust/issues/51999 is stabilized.
 macro_rules! const_assert {
@@ -283,7 +285,7 @@ impl SecretTree {
             Self::FILL_BYTES_CONTEXT,
             self.seed.expose_secret(),
         );
-        dest.to_le();
+        dest.convert_to_le();
     }
 
     /// Creates a secret by creating a buffer and filling it with a key derived from
@@ -473,14 +475,15 @@ impl std::error::Error for NameError {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::{thread_rng, Rng};
+
+    use rand::Rng;
     use std::vec;
 
     #[test]
     fn children_with_same_bytes_in_key() {
         let name = Name::new("A");
         let index = 0x41;
-        let tree = SecretTree::new(&mut thread_rng());
+        let tree = SecretTree::new(&mut ChaChaRng::seed_from_u64(123));
         let named_child = tree.child(name);
         let indexed_child = tree.index(index);
         assert_ne!(
@@ -491,7 +494,7 @@ mod tests {
 
     #[test]
     fn fill_and_rng_result_in_different_data() {
-        let tree = SecretTree::new(&mut thread_rng());
+        let tree = SecretTree::new(&mut ChaChaRng::seed_from_u64(123));
         let mut buffer = [0_u64; 8];
         tree.child(Name::new("foo")).fill(&mut buffer);
         let other_buffer: [u64; 8] = tree.child(Name::new("foo")).rng().gen();
@@ -501,7 +504,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "invalid output length")]
     fn filling_undersized_key() {
-        let tree = SecretTree::new(&mut thread_rng());
+        let tree = SecretTree::new(&mut ChaChaRng::seed_from_u64(123));
         let mut buffer = [0_u8; 12];
         tree.fill(&mut buffer);
     }
@@ -509,7 +512,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "invalid output length")]
     fn filling_oversized_key() {
-        let tree = SecretTree::new(&mut thread_rng());
+        let tree = SecretTree::new(&mut ChaChaRng::seed_from_u64(123));
         let mut buffer = [0_u64; 10];
         tree.fill(&mut buffer);
     }
@@ -523,7 +526,7 @@ mod tests {
         // here it is used just to test capabilities.
         let mut vec_buffer = vec![0_u16; 24];
 
-        let tree = SecretTree::new(&mut thread_rng());
+        let tree = SecretTree::new(&mut ChaChaRng::seed_from_u64(123));
         tree.child(Name::new("u8")).fill(&mut u8_buffer[..]);
         tree.child(Name::new("i32")).fill(&mut i32_buffer);
         tree.child(Name::new("u128")).fill(&mut u128_buffer);
@@ -587,7 +590,7 @@ mod tests {
 
     #[test]
     fn buffers_with_different_size_should_be_unrelated() {
-        let tree = SecretTree::new(&mut thread_rng());
+        let tree = SecretTree::new(&mut ChaChaRng::seed_from_u64(123));
         let mut bytes = [0_u8; 16];
         tree.child(Name::new("foo")).fill(&mut bytes);
         let mut other_bytes = [0_u8; 32];

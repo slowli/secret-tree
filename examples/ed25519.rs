@@ -15,7 +15,7 @@
 //! Example how to store a `SecretTree` seed in the passphrase-encrypted form and use it
 //! to derive heterogeneous keys.
 
-use ed25519::Keypair;
+use ed25519::{Keypair, SecretKey};
 use pwbox::{
     rcrypto::{RustCrypto, Scrypt},
     Eraser, ScryptParams, Suite,
@@ -29,7 +29,7 @@ use std::fmt;
 struct Keys {
     consensus_keys: Keypair,
     service_keys: Keypair,
-    other_secrets: Vec<Secret<[u128; 1]>>,
+    other_secrets: Vec<Secret<u128>>,
 }
 
 impl Keys {
@@ -39,9 +39,20 @@ impl Keys {
         let other = tree.child(Name::new("other"));
 
         Keys {
-            consensus_keys: Keypair::generate(&mut consensus.rng()),
-            service_keys: Keypair::generate(&mut service.rng()),
+            consensus_keys: Self::generate_keypair(consensus),
+            service_keys: Self::generate_keypair(service),
             other_secrets: (0..5).map(|i| other.index(i).create_secret()).collect(),
+        }
+    }
+
+    fn generate_keypair(tree: SecretTree) -> Keypair {
+        // Secret keys in Ed25519 are just random bytes, so generating them in this way is safe.
+        let secret_key = tree.create_secret::<[u8; 32]>();
+        let secret_key = SecretKey::from_bytes(secret_key.expose_secret()).unwrap();
+
+        Keypair {
+            public: (&secret_key).into(),
+            secret: secret_key,
         }
     }
 }
@@ -55,7 +66,7 @@ impl fmt::Display for Keys {
         );
         debug_struct.field("service", &hex::encode(self.service_keys.public.as_bytes()));
         for (i, secret) in self.other_secrets.iter().enumerate() {
-            debug_struct.field(&format!("other/{}", i), &secret.expose_secret()[0]);
+            debug_struct.field(&format!("other/{}", i), secret.expose_secret());
         }
         debug_struct.finish()
     }
