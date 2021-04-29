@@ -56,7 +56,7 @@
 //! from C to Rust):
 //!
 //! ```
-//! use rand::{SeedableRng};
+//! use rand::SeedableRng;
 //! use rand_chacha::ChaChaRng;
 //! # fn crypto_kdf_derive_from_key(_: &mut [u8], _: u64, _: &[u8; 8], _: &[u8; 32]) {}
 //!
@@ -458,6 +458,9 @@ impl fmt::Display for NameError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for NameError {}
+
+#[cfg(doctest)]
+doc_comment::doctest!("../README.md");
 
 #[cfg(test)]
 mod tests {
