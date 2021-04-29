@@ -1,7 +1,6 @@
 //! `libsodium`-compatible generic key derivation.
 
 use blake2::{digest::VariableOutput, VarBlake2b};
-use byteorder::{ByteOrder, LittleEndian};
 
 /// Byte length of a [`Seed`](crate::Seed) (32).
 // Blake2b specification states that it produces outputs in range 1..=64 bytes;
@@ -31,7 +30,7 @@ impl Index {
             Index::None => [0; 16],
             Index::Number(i) => {
                 let mut bytes = [0_u8; 16];
-                LittleEndian::write_u64(&mut bytes[..8], i);
+                bytes[..8].copy_from_slice(&i.to_le_bytes());
                 bytes
             }
             Index::Bytes(bytes) => bytes,

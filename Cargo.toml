@@ -20,7 +20,6 @@ rand_chacha = { version = "0.3.0", default-features = false }
 
 # Private dependencies.
 blake2 = { version = "0.9.1", default-features = false }
-byteorder = { version = "1.3.4", default-features = false }
 secrecy = { version = "0.7.0", default-features = false }
 
 [dev-dependencies]
