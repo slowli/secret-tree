@@ -63,5 +63,9 @@ limiting the threat of state leakage.
 
 Crate documentation provides more implementation details.
 
+## License
+
+Licensed under the [Apache-2.0 license](LICENSE).
+
 [libsodium]: https://download.libsodium.org/doc/key_derivation
 [ChaCha cipher]: https://tools.ietf.org/html/rfc7539
