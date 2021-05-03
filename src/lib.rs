@@ -95,7 +95,9 @@
 //! [Pedersen commitments]: https://en.wikipedia.org/wiki/Commitment_scheme
 
 #![cfg_attr(not(feature = "std"), no_std)]
+// Documentation settings
 #![doc(html_root_url = "https://docs.rs/secret-tree/0.3.0")]
+// Linter settings
 #![warn(missing_docs, missing_debug_implementations)]
 #![warn(clippy::all, clippy::pedantic)]
 #![allow(
@@ -145,7 +147,7 @@ pub type Seed = Secret<[u8; SEED_LEN]>;
 /// During the program lifecycle, a root `SecretTree` should be restored from
 /// a secure persistent form (e.g., a passphrase-encrypted file) and then used to derive
 /// child trees and secrets. On the first use, the root should be initialized from a CSPRNG, such
-/// as [`rand::thread_rng()`]. The tree is not needed during the program execution and can
+/// as `rand::thread_rng()`. The tree is not needed during the program execution and can
 /// be safely dropped after deriving necessary secrets (which zeroes out the tree seed).
 ///
 /// It is possible to modify the derivation hierarchy over the course of program evolution

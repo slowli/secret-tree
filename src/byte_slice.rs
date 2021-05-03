@@ -15,7 +15,7 @@ pub trait AsByteSliceMut {
 
     /// Converts values within this type to the little-endian byte order.
     ///
-    /// This methods is called after filling bytes to achieve uniform behavior across
+    /// This method is called after filling bytes to achieve uniform behavior across
     /// big-endian and little-endian platforms.
     fn convert_to_le(&mut self);
 }

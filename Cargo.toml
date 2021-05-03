@@ -17,10 +17,10 @@ repository = "https://github.com/slowli/secret-tree"
 # Public dependencies (present in the API exposed by the crate).
 rand = { version = "0.8.1", default-features = false }
 rand_chacha = { version = "0.3.0", default-features = false }
+secrecy = { version = "0.7.0", default-features = false }
 
 # Private dependencies.
 blake2 = { version = "0.9.1", default-features = false }
-secrecy = { version = "0.7.0", default-features = false }
 
 [dev-dependencies]
 const-decoder = "0.1.0"
@@ -33,6 +33,8 @@ version-sync = "0.9"
 
 [features]
 default = ["std"]
+# Enables features dependent on the full standard library. For now, this feature only
+# enables implementation of `std::error::Error` trait for error types.
 std = []
 
 [[example]]

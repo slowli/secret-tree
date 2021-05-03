@@ -9,6 +9,11 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 - Update `rand*` dependencies.
 
+### Internal improvements
+
+- Remove `byteorder` dependency; the same functionality can be accomplished using
+  the standard library.
+
 ## 0.3.0 - 2020-11-30
 
 ### Added
