@@ -318,25 +318,6 @@ impl SecretTree {
     }
 }
 
-macro_rules! check_null_chars {
-    ($bytes:ident, $($index:tt)+) => {
-        $(
-            const_assert!(
-                $bytes.len() <= $index || $bytes[$index] != 0,
-                "name contains a null char"
-            );
-        )+
-    };
-}
-
-macro_rules! zero_pad_array {
-    ($bytes:ident, $($index:tt)+) => {
-        [
-            $(if $bytes.len() <= $index { 0 } else { $bytes[$index] },)+
-        ]
-    };
-}
-
 /// Name of a child [`SecretTree`].
 ///
 /// Used in [`SecretTree::child()`]; see its documentation for more context.
@@ -350,7 +331,7 @@ macro_rules! zero_pad_array {
 /// assert_eq!(NAME.as_ref(), "test_name");
 /// assert_eq!(NAME.to_string(), "test_name");
 /// ```
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Name([u8; SALT_LEN]);
 
 impl Name {
@@ -388,12 +369,15 @@ impl Name {
     /// Use the [`FromStr`] implementation if descriptive errors are a concern.
     pub const fn new(name: &str) -> Self {
         let bytes = name.as_bytes();
-        const_assert!(
-            bytes.len() <= SALT_LEN,
-            "name is too long, 0..=16 bytes expected"
-        );
-        check_null_chars!(bytes, 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15);
-        Name(zero_pad_array!(bytes, 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15))
+
+        let mut i = 0;
+        let mut buffer = [0_u8; SALT_LEN];
+        while i < name.len() {
+            const_assert!(bytes[i] != 0, "name contains a null char");
+            buffer[i] = bytes[i];
+            i += 1;
+        }
+        Name(buffer)
     }
 }
 
