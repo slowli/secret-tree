@@ -5,9 +5,11 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  schedule:
+    - cron: '30 3 * * TUE'
 
 env:
-  msrv: 1.46.0
+  msrv: 1.51.0
   nightly: nightly-2021-04-15
 
 jobs:

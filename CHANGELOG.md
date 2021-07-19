@@ -10,6 +10,7 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 ### Changed
 
 - Update `rand*` dependencies.
+- Update `secrecy` dependency and bump MSRV to 1.51.
 
 ### Internal improvements
 
