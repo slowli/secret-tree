@@ -69,7 +69,7 @@ where
     }
 
     fn convert_to_le(&mut self) {
-        AsByteSliceMut::convert_to_le(slice::from_mut(self))
+        AsByteSliceMut::convert_to_le(slice::from_mut(self));
     }
 }
 
