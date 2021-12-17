@@ -1,6 +1,12 @@
 //! `libsodium`-compatible generic key derivation.
 
-use blake2::{digest::VariableOutput, VarBlake2b};
+use blake2::{
+    digest::{
+        core_api::{Buffer, UpdateCore, VariableOutputCore},
+        Output,
+    },
+    Blake2bVarCore,
+};
 
 /// Byte length of a [`Seed`](crate::Seed) (32).
 // Blake2b specification states that it produces outputs in range 1..=64 bytes;
@@ -12,13 +18,13 @@ pub const SEED_LEN: usize = 32;
 // This length is half of what is supported by Blake2b (16 bytes),
 // but is compatible with the key derivation in `libsodium`. We don’t
 // need more internally and do not expose context to users.
-pub const CONTEXT_LEN: usize = 8;
+pub(crate) const CONTEXT_LEN: usize = 8;
 
 /// Byte length of salt in the Blake2b initialization block.
-pub const SALT_LEN: usize = 16;
+pub(crate) const SALT_LEN: usize = 16;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Index {
+pub(crate) enum Index {
     None,
     Number(u64),
     Bytes([u8; SALT_LEN]),
@@ -38,7 +44,7 @@ impl Index {
     }
 }
 
-pub fn derive_key(
+pub(crate) fn derive_key(
     output: &mut [u8],
     index: Index,
     context: [u8; CONTEXT_LEN],
@@ -49,11 +55,16 @@ pub fn derive_key(
         "invalid output length, 16..=64 bytes expected"
     );
 
-    let digest = VarBlake2b::with_params(key, &index.to_salt(), &context, output.len());
-    digest.finalize_variable(|digest_output| {
-        assert_eq!(digest_output.len(), output.len());
-        output.copy_from_slice(digest_output);
-    });
+    let mut buffer = Buffer::<Blake2bVarCore>::default();
+    let mut core =
+        Blake2bVarCore::new_with_params(&index.to_salt(), &context, SEED_LEN, output.len());
+    buffer.digest_blocks(key, |blocks| core.update_blocks(blocks));
+    // Pad the key with 3 * 32 = 96 bytes so that it occupies 2 entire blocks
+    buffer.digest_blocks(&[0; 3 * SEED_LEN], |blocks| core.update_blocks(blocks));
+
+    let mut full_output = Output::<Blake2bVarCore>::default();
+    core.finalize_variable_core(&mut buffer, &mut full_output);
+    output.copy_from_slice(&full_output[..output.len()]);
 }
 
 #[test]
