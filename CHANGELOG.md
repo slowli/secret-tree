@@ -5,9 +5,12 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## 0.4.1 - 2021-12-29
+
 ### Internal improvements
 
 - Update `blake2` dependency.
+- Test backward compatibility of the derivation logic with snapshot testing.
 
 ## 0.4.0 - 2021-05-03
 

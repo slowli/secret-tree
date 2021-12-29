@@ -96,7 +96,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // Documentation settings
-#![doc(html_root_url = "https://docs.rs/secret-tree/0.4.0")]
+#![doc(html_root_url = "https://docs.rs/secret-tree/0.4.1")]
 // Linter settings
 #![warn(missing_docs, missing_debug_implementations)]
 #![warn(clippy::all, clippy::pedantic)]
