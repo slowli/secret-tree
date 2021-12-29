@@ -25,9 +25,11 @@ blake2 = { version = "0.10.0", default-features = false }
 [dev-dependencies]
 const-decoder = "0.2.0"
 doc-comment = "0.3.3"
-hex = "0.4.2"
 ed25519 = { package = "ed25519-dalek", version = "1.0.1" }
+hex = "0.4.2"
+insta = "1.9.0"
 pwbox = { version = "0.4.0", default-features = false, features = ["std", "rust-crypto"] }
+serde = { version = "1.0", features = ["derive"] }
 toml = "0.5.7"
 version-sync = "0.9"
 
