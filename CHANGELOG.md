@@ -5,6 +5,10 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- Allow deriving child based on 32-byte digest.
+
 ## 0.4.1 - 2021-12-29
 
 ### Internal improvements

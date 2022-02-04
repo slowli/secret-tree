@@ -44,8 +44,10 @@
 //! |:----------|:-----|:----------------|
 //! | Secret key | `[0; 16]` | `b"bytes\0\0...\0"` |
 //! | CSPRNG seed | `[0; 16]` | `b"rng\0\0...\0"` |
-//! | Seed for a named child | `name.as_bytes()` (zero-padded) | `b"name\0\0...\0"` |
-//! | Seed for an indexed child | `LittleEndian(index)` | `b"index\0\0...\0"` |
+//! | Seed for a [named child](Self::name()) | `name.as_bytes()` (zero-padded) | `b"name\0\0...\0"` |
+//! | Seed for an [indexed child](Self::index()) | `LittleEndian(index)` | `b"index\0\0...\0"` |
+//! | Seed for a [digest child](Self::digest()) (1st iter) | `digest[..16]` | `b"digest0\0\0...\0"` |
+//! | Seed for a digest child (2nd iter) | `digest[16..]` | `b"digest1\0\0...\0"` |
 //!
 //! Derivation of a secret key, CSPRNG seed and seeds for indexed children are
 //! all fully compatible with libsodium.
@@ -72,8 +74,13 @@
 //! let rng = ChaChaRng::from_seed(rng_seed);
 //! ```
 //!
-//! In case of named children, we utilize the entire salt section, while libsodium
+//! In case of named and digest children, we utilize the entire salt section, while libsodium
 //! only uses the first 8 bytes.
+//!
+//! For digest children, the derivation procedure is applied 2 times, taking the first 16 bytes
+//! and the remaining 16 bytes of the digest respectively. The 32-byte key derived on the first
+//! iteration is used as the master key input for the second iteration. Such a procedure
+//! is necessary because Blake2b only supports 16-byte salts.
 //!
 //! # Design motivations
 //!
@@ -204,6 +211,8 @@ impl SecretTree {
     const RNG_CONTEXT: [u8; CONTEXT_LEN] = *b"rng\0\0\0\0\0";
     const NAME_CONTEXT: [u8; CONTEXT_LEN] = *b"name\0\0\0\0";
     const INDEX_CONTEXT: [u8; CONTEXT_LEN] = *b"index\0\0\0";
+    const DIGEST_START_CONTEXT: [u8; CONTEXT_LEN] = *b"digest0\0";
+    const DIGEST_END_CONTEXT: [u8; CONTEXT_LEN] = *b"digest1\0";
 
     /// Generates a tree by sampling its seed from the supplied RNG.
     pub fn new<R: RngCore + CryptoRng>(rng: &mut R) -> Self {
@@ -315,6 +324,36 @@ impl SecretTree {
             Index::Number(index),
             Self::INDEX_CONTEXT,
             self.seed.expose_secret(),
+        );
+        Self::from_seed(Secret::new(child_seed))
+    }
+
+    /// Produces a child with the specified 32-byte digest (e.g., an output of SHA-256,
+    /// SHA3-256 or Keccak256 hash functions).
+    ///
+    /// This method can be used for arbitrarily-sized keys by first digesting them
+    /// with a collision-resistant hash function.
+    pub fn digest(&self, digest: &[u8; 32]) -> Self {
+        let mut first_half_of_digest = [0_u8; SALT_LEN];
+        first_half_of_digest.copy_from_slice(&digest[0..SALT_LEN]);
+        let mut second_half_of_digest = [0_u8; SALT_LEN];
+        second_half_of_digest.copy_from_slice(&digest[SALT_LEN..]);
+
+        let mut intermediate_seed = [0_u8; 32];
+        derive_key(
+            &mut intermediate_seed,
+            Index::Bytes(first_half_of_digest),
+            Self::DIGEST_START_CONTEXT,
+            self.seed.expose_secret(),
+        );
+        let intermediate_seed = Secret::new(intermediate_seed);
+
+        let mut child_seed = [0_u8; 32];
+        derive_key(
+            &mut child_seed,
+            Index::Bytes(second_half_of_digest),
+            Self::DIGEST_END_CONTEXT,
+            intermediate_seed.expose_secret(),
         );
         Self::from_seed(Secret::new(child_seed))
     }
@@ -452,7 +491,7 @@ doc_comment::doctest!("../README.md");
 mod tests {
     use super::*;
 
-    use rand::Rng;
+    use rand::{Rng, SeedableRng};
     use std::vec;
 
     #[test]
@@ -572,5 +611,28 @@ mod tests {
         let mut other_bytes = [0_u8; 32];
         tree.child(Name::new("foo")).fill(&mut other_bytes);
         assert!(bytes.iter().zip(&other_bytes).any(|(&x, &y)| x != y));
+    }
+
+    #[test]
+    fn digest_derivation_depends_on_all_bits_of_digest() {
+        const RNG_SEED: u64 = 12345;
+
+        let mut rng = ChaChaRng::seed_from_u64(RNG_SEED);
+        let tree = SecretTree::new(&mut rng);
+        let mut digest = [0_u8; 32];
+        rng.fill_bytes(&mut digest);
+
+        let child_seed = tree.digest(&digest).seed;
+        for byte_idx in 0..32 {
+            for bit_idx in 0..7 {
+                let mut mutated_digest = digest;
+                mutated_digest[byte_idx] ^= 1 << bit_idx;
+                let mutated_child_seed = tree.digest(&mutated_digest).seed;
+                assert_ne!(
+                    child_seed.expose_secret(),
+                    mutated_child_seed.expose_secret()
+                );
+            }
+        }
     }
 }
