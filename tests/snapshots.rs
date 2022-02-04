@@ -14,6 +14,7 @@ use secret_tree::{Name, SecretTree, Seed};
 struct TreeOutput {
     indexed_values: Vec<u128>,
     named_values: BTreeMap<&'static str, i128>,
+    digest_values: Vec<u128>,
     rng_output: [u32; 4],
 }
 
@@ -32,6 +33,9 @@ impl TreeOutput {
                     tree.child(*name).fill(&mut value);
                     (name.as_ref(), value)
                 })
+                .collect(),
+            digest_values: (0..5)
+                .map(|i| *tree.digest(&[i; 32]).create_secret().expose_secret())
                 .collect(),
             rng_output: tree.rng().gen(),
         }
