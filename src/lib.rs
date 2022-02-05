@@ -624,9 +624,11 @@ mod tests {
 
         let child_seed = tree.digest(&digest).seed;
         for byte_idx in 0..32 {
-            for bit_idx in 0..7 {
+            for bit_idx in 0..8 {
                 let mut mutated_digest = digest;
                 mutated_digest[byte_idx] ^= 1 << bit_idx;
+                assert_ne!(mutated_digest, digest);
+
                 let mutated_child_seed = tree.digest(&mutated_digest).seed;
                 assert_ne!(
                     child_seed.expose_secret(),
