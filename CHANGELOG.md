@@ -9,6 +9,10 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 - Allow deriving child based on 32-byte digest.
 
+### Changed
+
+- Bump MSRV to 1.57 and switch to 2021 Rust edition.
+
 ## 0.4.1 - 2021-12-29
 
 ### Internal improvements
