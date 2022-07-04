@@ -40,7 +40,7 @@ macro_rules! impl_as_byte_slice {
                     &mut []
                 } else {
                     let byte_len = self.len() * mem::size_of::<$ty>();
-                    let data = self as *mut [$ty] as *mut u8;
+                    let data = (self as *mut [$ty]).cast::<u8>();
                     unsafe { slice::from_raw_parts_mut(data, byte_len) }
                 }
             }
