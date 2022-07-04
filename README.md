@@ -2,7 +2,7 @@
 
 [![Build Status](https://github.com/slowli/secret-tree/workflows/Rust/badge.svg?branch=master)](https://github.com/slowli/secret-tree/actions)
 [![License: Apache-2.0](https://img.shields.io/github/license/slowli/secret-tree.svg)](https://github.com/slowli/secret-tree/blob/master/LICENSE)
-![rust 1.51.0+ required](https://img.shields.io/badge/rust-1.51.0+-blue.svg)
+![rust 1.57+ required](https://img.shields.io/badge/rust-1.57+-blue.svg)
 
 **Documentation:** [![Docs.rs](https://docs.rs/secret-tree/badge.svg)](https://docs.rs/secret-tree/)
 [![crate docs (master)](https://img.shields.io/badge/master-yellow.svg?label=docs)](https://slowli.github.io/secret-tree/secret_tree/) 

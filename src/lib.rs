@@ -134,13 +134,6 @@ pub use crate::{byte_slice::AsByteSliceMut, kdf::SEED_LEN};
 
 use crate::kdf::{derive_key, Index, CONTEXT_LEN, SALT_LEN};
 
-// TODO: replace with `assert` once https://github.com/rust-lang/rust/issues/51999 is stabilized.
-macro_rules! const_assert {
-    ($condition:expr, $msg:tt) => {
-        [$msg][!($condition) as usize];
-    };
-}
-
 /// Maximum byte length of a [`Name`] (16).
 pub const MAX_NAME_LEN: usize = SALT_LEN;
 
@@ -405,16 +398,15 @@ impl Name {
     ///
     /// # Panics
     ///
-    /// Panics if `name` is overly long or contains null chars. Note that in order to make
-    /// this method constant, the panic message for runtime calls is non-descriptive.
-    /// Use the [`FromStr`] implementation if descriptive errors are a concern.
+    /// Panics if `name` is overly long or contains null chars.
+    /// Use the [`FromStr`] implementation for a fallible / non-panicking alternative.
     pub const fn new(name: &str) -> Self {
         let bytes = name.as_bytes();
 
         let mut i = 0;
         let mut buffer = [0_u8; SALT_LEN];
         while i < name.len() {
-            const_assert!(bytes[i] != 0, "name contains a null char");
+            assert!(bytes[i] != 0, "name contains a null char");
             buffer[i] = bytes[i];
             i += 1;
         }
