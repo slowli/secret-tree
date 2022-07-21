@@ -286,25 +286,42 @@ impl SecretTree {
     ///
     /// Panics in the same cases when [`Self::try_fill()`] returns an error.
     pub fn fill<T: AsByteSliceMut + ?Sized>(self, dest: &mut T) {
-        self.try_fill(dest).unwrap_or_else(|err| panic!("{}", err));
+        self.try_fill(dest).unwrap_or_else(|err| {
+            panic!("Failed filling a buffer from `SecretTree`: {}", err);
+        });
     }
 
-    /// Creates a secret by creating a buffer and filling it with a key derived from
+    /// Tries to create a secret by instantiating a buffer and filling it with a key derived from
     /// the seed of this tree. Essentially, this is a more high-level wrapper around
-    /// [`Self::fill()`].
+    /// [`Self::try_fill()`].
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if `T` does not have length `16..=64` bytes. Use [`Self::rng()`]
+    /// Returns an error if `T` does not have length `16..=64` bytes. Use [`Self::rng()`]
     /// if the buffer size may be outside these bounds, or if the secret must be derived
     /// in a more complex way.
-    pub fn create_secret<T>(self) -> Secret<T>
+    pub fn try_create_secret<T>(self) -> Result<Secret<T>, FillError>
     where
         T: AsByteSliceMut + Default + Zeroize,
     {
         let mut secret_value = T::default();
-        self.fill(&mut secret_value);
-        Secret::new(secret_value)
+        self.try_fill(&mut secret_value)?;
+        Ok(Secret::new(secret_value))
+    }
+
+    /// Creates a secret by instantiating a buffer and filling it with a key derived from
+    /// the seed of this tree.
+    ///
+    /// # Panics
+    ///
+    /// Panics in the same cases when [`Self::try_create_secret()`] returns an error.
+    pub fn create_secret<T>(self) -> Secret<T>
+    where
+        T: AsByteSliceMut + Default + Zeroize,
+    {
+        self.try_create_secret().unwrap_or_else(|err| {
+            panic!("Failed creating a secret from `SecretTree`: {}", err);
+        })
     }
 
     /// Produces a child with the specified string identifier.
