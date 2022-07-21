@@ -44,9 +44,9 @@
 //! |:----------|:-----|:----------------|
 //! | Secret key | `[0; 16]` | `b"bytes\0\0...\0"` |
 //! | CSPRNG seed | `[0; 16]` | `b"rng\0\0...\0"` |
-//! | Seed for a [named child](Self::name()) | `name.as_bytes()` (zero-padded) | `b"name\0\0...\0"` |
-//! | Seed for an [indexed child](Self::index()) | `LittleEndian(index)` | `b"index\0\0...\0"` |
-//! | Seed for a [digest child](Self::digest()) (1st iter) | `digest[..16]` | `b"digest0\0\0...\0"` |
+//! | Seed for a [named child](SecretTree::child()) | `name.as_bytes()` (zero-padded) | `b"name\0\0...\0"` |
+//! | Seed for an [indexed child](SecretTree::index()) | `LittleEndian(index)` | `b"index\0\0...\0"` |
+//! | Seed for a [digest child](SecretTree::digest()) (1st iter) | `digest[..16]` | `b"digest0\0\0...\0"` |
 //! | Seed for a digest child (2nd iter) | `digest[16..]` | `b"digest1\0\0...\0"` |
 //!
 //! Derivation of a secret key, CSPRNG seed and seeds for indexed children are
