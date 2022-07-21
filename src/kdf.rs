@@ -8,6 +8,8 @@ use blake2::{
     Blake2bVarCore,
 };
 
+use crate::FillError;
+
 /// Byte length of a [`Seed`](crate::Seed) (32).
 // Blake2b specification states that it produces outputs in range 1..=64 bytes;
 // libsodium supports 16..=64 byte outputs. We only use 32-byte outputs; this
@@ -44,16 +46,27 @@ impl Index {
     }
 }
 
-pub(crate) fn derive_key(
+pub(crate) fn try_derive_key(
     output: &mut [u8],
     index: Index,
     context: [u8; CONTEXT_LEN],
     key: &[u8; SEED_LEN],
-) {
-    assert!(
-        output.len() >= 16 && output.len() <= 64,
-        "invalid output length, 16..=64 bytes expected"
-    );
+) -> Result<(), FillError> {
+    const MIN_SUPPORTED_SIZE: usize = 16;
+    const MAX_SUPPORTED_SIZE: usize = 64;
+
+    if output.len() < MIN_SUPPORTED_SIZE {
+        return Err(FillError::BufferTooSmall {
+            size: output.len(),
+            min_supported_size: MIN_SUPPORTED_SIZE,
+        });
+    }
+    if output.len() > MAX_SUPPORTED_SIZE {
+        return Err(FillError::BufferTooLarge {
+            size: output.len(),
+            max_supported_size: MAX_SUPPORTED_SIZE,
+        });
+    }
 
     let mut buffer = Buffer::<Blake2bVarCore>::default();
     let mut core =
@@ -65,6 +78,16 @@ pub(crate) fn derive_key(
     let mut full_output = Output::<Blake2bVarCore>::default();
     core.finalize_variable_core(&mut buffer, &mut full_output);
     output.copy_from_slice(&full_output[..output.len()]);
+    Ok(())
+}
+
+pub(crate) fn derive_key(
+    output: &mut [u8],
+    index: Index,
+    context: [u8; CONTEXT_LEN],
+    key: &[u8; SEED_LEN],
+) {
+    try_derive_key(output, index, context, key).unwrap();
 }
 
 #[test]

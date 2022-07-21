@@ -132,7 +132,7 @@ mod kdf;
 
 pub use crate::{byte_slice::AsByteSliceMut, kdf::SEED_LEN};
 
-use crate::kdf::{derive_key, Index, CONTEXT_LEN, SALT_LEN};
+use crate::kdf::{derive_key, try_derive_key, Index, CONTEXT_LEN, SALT_LEN};
 
 /// Maximum byte length of a [`Name`] (16).
 pub const MAX_NAME_LEN: usize = SALT_LEN;
@@ -262,21 +262,31 @@ impl SecretTree {
         ChaChaRng::from_seed(seed)
     }
 
-    /// Fills the specified buffer with a key derived from the seed of this tree.
+    /// Tries to fill the specified buffer with a key derived from the seed of this tree.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if the buffer does not have length `16..=64` bytes. Use [`Self::rng()`]
+    /// Errors if the buffer does not have length `16..=64` bytes. Use [`Self::rng()`]
     /// if the buffer size may be outside these bounds, or if the secret must be derived
     /// in a more complex way.
-    pub fn fill<T: AsByteSliceMut + ?Sized>(self, dest: &mut T) {
-        derive_key(
+    pub fn try_fill<T: AsByteSliceMut + ?Sized>(self, dest: &mut T) -> Result<(), FillError> {
+        try_derive_key(
             dest.as_byte_slice_mut(),
             Index::None,
             Self::FILL_BYTES_CONTEXT,
             self.seed.expose_secret(),
-        );
+        )?;
         dest.convert_to_le();
+        Ok(())
+    }
+
+    /// Fills the specified buffer with a key derived from the seed of this tree.
+    ///
+    /// # Panics
+    ///
+    /// Panics in the same cases when [`Self::try_fill()`] returns an error.
+    pub fn fill<T: AsByteSliceMut + ?Sized>(self, dest: &mut T) {
+        self.try_fill(dest).unwrap_or_else(|err| panic!("{}", err));
     }
 
     /// Creates a secret by creating a buffer and filling it with a key derived from
@@ -351,6 +361,61 @@ impl SecretTree {
         Self::from_seed(Secret::new(child_seed))
     }
 }
+
+/// Errors that can occur when calling [`SecretTree::try_fill()`].
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum FillError {
+    /// The supplied buffer is too small to be filled.
+    BufferTooSmall {
+        /// Byte size of the supplied buffer.
+        size: usize,
+        /// Minimum byte size for supported buffers.
+        min_supported_size: usize,
+    },
+    /// The supplied buffer is too large to be filled.
+    BufferTooLarge {
+        /// Byte size of the supplied buffer.
+        size: usize,
+        /// Maximum byte size for supported buffers.
+        max_supported_size: usize,
+    },
+}
+
+impl fmt::Display for FillError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BufferTooSmall {
+                size,
+                min_supported_size,
+            } => {
+                write!(
+                    formatter,
+                    "supplied buffer ({size} bytes) is too small to be filled; \
+                     min supported size is {min_supported} bytes",
+                    size = size,
+                    min_supported = min_supported_size
+                )
+            }
+
+            Self::BufferTooLarge {
+                size,
+                max_supported_size,
+            } => {
+                write!(
+                    formatter,
+                    "supplied buffer ({size} bytes) is too large to be filled; \
+                     max supported size is {max_supported} bytes",
+                    size = size,
+                    max_supported = max_supported_size
+                )
+            }
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for FillError {}
 
 /// Name of a child [`SecretTree`].
 ///
@@ -509,7 +574,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "invalid output length")]
+    #[should_panic(expected = "supplied buffer (12 bytes) is too small to be filled")]
     fn filling_undersized_key() {
         let tree = SecretTree::new(&mut ChaChaRng::seed_from_u64(123));
         let mut buffer = [0_u8; 12];
@@ -517,11 +582,55 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "invalid output length")]
+    fn error_filling_undersized_key() {
+        let tree = SecretTree::new(&mut ChaChaRng::seed_from_u64(123));
+        let mut buffer = [0_u8; 12];
+        let err = tree.try_fill(&mut buffer).unwrap_err();
+
+        assert!(matches!(
+            err,
+            FillError::BufferTooSmall {
+                size: 12,
+                min_supported_size: 16,
+            }
+        ));
+        let err = err.to_string();
+        assert!(
+            err.contains("supplied buffer (12 bytes) is too small to be filled"),
+            "{}",
+            err
+        );
+        assert!(err.contains("min supported size is 16 bytes"), "{}", err);
+    }
+
+    #[test]
+    #[should_panic(expected = "supplied buffer (80 bytes) is too large to be filled")]
     fn filling_oversized_key() {
         let tree = SecretTree::new(&mut ChaChaRng::seed_from_u64(123));
         let mut buffer = [0_u64; 10];
         tree.fill(&mut buffer);
+    }
+
+    #[test]
+    fn error_filling_oversized_key() {
+        let tree = SecretTree::new(&mut ChaChaRng::seed_from_u64(123));
+        let mut buffer = [0_u64; 10];
+        let err = tree.try_fill(&mut buffer).unwrap_err();
+
+        assert!(matches!(
+            err,
+            FillError::BufferTooLarge {
+                size: 80,
+                max_supported_size: 64,
+            }
+        ));
+        let err = err.to_string();
+        assert!(
+            err.contains("supplied buffer (80 bytes) is too large to be filled"),
+            "{}",
+            err
+        );
+        assert!(err.contains("max supported size is 64 bytes"), "{}", err);
     }
 
     #[test]

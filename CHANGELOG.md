@@ -8,6 +8,7 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 ### Added
 
 - Allow deriving child based on 32-byte digest.
+- Add fallible version of `SecretTree::fill` called `SecretTree::try_fill`.
 
 ### Changed
 
