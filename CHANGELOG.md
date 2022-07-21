@@ -5,9 +5,14 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## 0.5.0 - 2022-07-21
+
 ### Added
 
-- Allow deriving child based on 32-byte digest.
+- Allow deriving a child from a tree based on 32-byte digest.
+- Add fallible versions of `SecretTree::fill()` and `SecretTree::create_secret()`
+  called `SecretTree::try_fill()` and `SecretTree::try_create_secret()`,
+  respectively.
 
 ### Changed
 
