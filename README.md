@@ -30,7 +30,7 @@ Add this to your `Crate.toml`:
 
 ```toml
 [dependencies]
-secret-tree = "0.4.1"
+secret-tree = "0.5.0"
 ```
 
 Basic usage:

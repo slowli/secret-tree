@@ -2,7 +2,7 @@
 name = "secret-tree"
 edition = "2021"
 rust-version = "1.57"
-version = "0.4.1"
+version = "0.5.0"
 authors = [
   "Alex Ostrovski <ostrovski.alex@gmail.com>",
   "Pavel Mukhanov <mukhanovpv@gmail.com>",
