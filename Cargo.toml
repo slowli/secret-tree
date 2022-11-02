@@ -24,7 +24,7 @@ secrecy = { version = "0.8.0", default-features = false }
 blake2 = { version = "0.10.0", default-features = false }
 
 [dev-dependencies]
-const-decoder = "0.2.0"
+const-decoder = "0.3.0"
 doc-comment = "0.3.3"
 ed25519 = { package = "ed25519-dalek", version = "1.0.1" }
 hex = "0.4.2"
