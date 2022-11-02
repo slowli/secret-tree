@@ -28,7 +28,7 @@ const-decoder = "0.3.0"
 doc-comment = "0.3.3"
 ed25519 = { package = "ed25519-dalek", version = "1.0.1" }
 hex = "0.4.2"
-insta = "1.9.0"
+insta = { version = "1.21.0", features = ["yaml"] }
 pwbox = { version = "0.5.0", default-features = false, features = ["std", "rust-crypto"] }
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.5.7"
