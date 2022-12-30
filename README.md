@@ -1,6 +1,6 @@
 # Hierarchical secret derivation with Blake2b
 
-[![Build Status](https://github.com/slowli/secret-tree/workflows/Rust/badge.svg?branch=master)](https://github.com/slowli/secret-tree/actions)
+[![Build Status](https://github.com/slowli/secret-tree/workflows/CI/badge.svg?branch=master)](https://github.com/slowli/secret-tree/actions)
 [![License: Apache-2.0](https://img.shields.io/github/license/slowli/secret-tree.svg)](https://github.com/slowli/secret-tree/blob/master/LICENSE)
 ![rust 1.57+ required](https://img.shields.io/badge/rust-1.57+-blue.svg)
 ![no_std supported](https://img.shields.io/badge/no__std-tested-green.svg)
