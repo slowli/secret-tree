@@ -52,7 +52,7 @@ impl fmt::Display for Keys {
         );
         debug_struct.field("service", &hex::encode(self.service_keys.public.as_bytes()));
         for (i, secret) in self.other_secrets.iter().enumerate() {
-            debug_struct.field(&format!("other/{}", i), secret.expose_secret());
+            debug_struct.field(&format!("other/{i}"), secret.expose_secret());
         }
         debug_struct.finish()
     }
