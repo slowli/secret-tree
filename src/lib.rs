@@ -287,7 +287,7 @@ impl SecretTree {
     /// Panics in the same cases when [`Self::try_fill()`] returns an error.
     pub fn fill<T: AsByteSliceMut + ?Sized>(self, dest: &mut T) {
         self.try_fill(dest).unwrap_or_else(|err| {
-            panic!("Failed filling a buffer from `SecretTree`: {}", err);
+            panic!("Failed filling a buffer from `SecretTree`: {err}");
         });
     }
 
@@ -320,7 +320,7 @@ impl SecretTree {
         T: AsByteSliceMut + Default + Zeroize,
     {
         self.try_create_secret().unwrap_or_else(|err| {
-            panic!("Failed creating a secret from `SecretTree`: {}", err);
+            panic!("Failed creating a secret from `SecretTree`: {err}");
         })
     }
 
@@ -614,10 +614,9 @@ mod tests {
         let err = err.to_string();
         assert!(
             err.contains("supplied buffer (12 bytes) is too small to be filled"),
-            "{}",
-            err
+            "{err}"
         );
-        assert!(err.contains("min supported size is 16 bytes"), "{}", err);
+        assert!(err.contains("min supported size is 16 bytes"), "{err}");
     }
 
     #[test]
@@ -644,10 +643,9 @@ mod tests {
         let err = err.to_string();
         assert!(
             err.contains("supplied buffer (80 bytes) is too large to be filled"),
-            "{}",
-            err
+            "{err}"
         );
-        assert!(err.contains("max supported size is 64 bytes"), "{}", err);
+        assert!(err.contains("max supported size is 64 bytes"), "{err}");
     }
 
     #[test]
@@ -717,7 +715,7 @@ mod tests {
             let expected_str = &"Overly long name"[..i];
             assert_eq!(name.to_string(), expected_str);
             assert_eq!(name.as_ref(), expected_str);
-            assert!(format!("{:?}", name).contains(expected_str));
+            assert!(format!("{name:?}").contains(expected_str));
         }
     }
 
