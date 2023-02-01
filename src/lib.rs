@@ -409,9 +409,7 @@ impl fmt::Display for FillError {
                 write!(
                     formatter,
                     "supplied buffer ({size} bytes) is too small to be filled; \
-                     min supported size is {min_supported} bytes",
-                    size = size,
-                    min_supported = min_supported_size
+                     min supported size is {min_supported_size} bytes"
                 )
             }
 
@@ -422,9 +420,7 @@ impl fmt::Display for FillError {
                 write!(
                     formatter,
                     "supplied buffer ({size} bytes) is too large to be filled; \
-                     max supported size is {max_supported} bytes",
-                    size = size,
-                    max_supported = max_supported_size
+                     max supported size is {max_supported_size} bytes"
                 )
             }
         }
