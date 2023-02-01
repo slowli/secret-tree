@@ -63,7 +63,7 @@ fn main() {
     let mut rng = thread_rng();
     let tree = SecretTree::new(&mut rng);
     let keys = Keys::new(&tree);
-    println!("Original keys: {:#}\n", keys);
+    println!("Original keys: {keys:#}\n");
     let public_keys = (keys.consensus_keys.public, keys.service_keys.public);
 
     // Assume that we have securely persisted the RNG tree (e.g., with passphrase encryption).
@@ -100,5 +100,5 @@ fn main() {
         public_keys,
         (keys.consensus_keys.public, keys.service_keys.public)
     );
-    println!("Restored keys: {:#}", keys);
+    println!("Restored keys: {keys:#}");
 }
