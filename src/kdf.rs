@@ -176,7 +176,7 @@ fn sodium_test_vectors_varying_len_output() {
         *byte = u8::try_from(i).unwrap();
     }
 
-    for &exp in EXP.iter() {
+    for &exp in EXP {
         let byte_size = exp.len();
         let mut output = vec![0; byte_size];
         derive_key(&mut output, Index::Number(byte_size as u64), CTX, &key);
