@@ -68,5 +68,9 @@ Crate documentation provides more implementation details.
 
 Licensed under the [Apache-2.0 license](LICENSE).
 
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in `secret-tree` by you, as defined in the Apache-2.0 license,
+shall be licensed as above, without any additional terms or conditions.
+
 [libsodium]: https://download.libsodium.org/doc/key_derivation
 [ChaCha cipher]: https://tools.ietf.org/html/rfc7539

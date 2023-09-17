@@ -1,5 +1,4 @@
-//! Example how to store a `SecretTree` seed in the passphrase-encrypted form and use it
-//! to derive heterogeneous keys.
+//! Example how to store a `SecretTree` seed and use it to derive heterogeneous keys.
 
 use ed25519::SigningKey;
 use rand::thread_rng;
