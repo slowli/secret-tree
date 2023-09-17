@@ -116,8 +116,8 @@
 #[cfg(all(not(feature = "std"), test))]
 extern crate std;
 
-use rand::{CryptoRng, RngCore, SeedableRng};
 use rand_chacha::ChaChaRng;
+use rand_core::{CryptoRng, RngCore, SeedableRng};
 use secrecy::{zeroize::Zeroize, ExposeSecret, Secret};
 
 use core::{
