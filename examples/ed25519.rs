@@ -2,10 +2,6 @@
 //! to derive heterogeneous keys.
 
 use ed25519::SigningKey;
-use pwbox::{
-    rcrypto::{RustCrypto, Scrypt},
-    Eraser, ScryptParams, Suite,
-};
 use rand::thread_rng;
 use secrecy::{ExposeSecret, Secret};
 use secret_tree::{Name, SecretTree};
@@ -64,33 +60,11 @@ fn main() {
     );
 
     // Assume that we have securely persisted the RNG tree (e.g., with passphrase encryption).
-    let passphrase = "correct horse battery staple";
-    let secured_store = RustCrypto::build_box(&mut rng)
-        .kdf(if cfg!(debug_assertions) {
-            // Ultra-light parameters to get the test run fast in the debug mode.
-            Scrypt(ScryptParams::custom(6, 16))
-        } else {
-            Scrypt::default()
-        })
-        .seal(passphrase, tree.seed().expose_secret())
-        .unwrap();
+    let seed = tree.seed().clone();
     drop(tree);
 
-    let mut eraser = Eraser::new();
-    eraser.add_suite::<RustCrypto>();
-    let secured_store = eraser.erase(&secured_store).unwrap();
-    println!(
-        "Passphrase-encrypted RNG tree (TOML):\n{}",
-        toml::to_string(&secured_store).unwrap()
-    );
-
     // ...Then, we can restore all keys by deserializing the RNG tree.
-    let seed = eraser
-        .restore(&secured_store)
-        .unwrap()
-        .open(passphrase)
-        .unwrap();
-    let tree = SecretTree::from_slice(&seed).unwrap();
+    let tree = SecretTree::from_slice(seed.expose_secret()).unwrap();
 
     let keys = Keys::new(&tree);
     assert_eq!(

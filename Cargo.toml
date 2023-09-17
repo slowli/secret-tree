@@ -29,7 +29,6 @@ doc-comment = "0.3.3"
 ed25519 = { package = "ed25519-dalek", version = "2" }
 hex = "0.4.2"
 insta = { version = "1.21.0", features = ["yaml"] }
-pwbox = { version = "0.5.0", default-features = false, features = ["std", "rust-crypto"] }
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.8.0"
 version-sync = "0.9"
