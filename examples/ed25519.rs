@@ -1,7 +1,7 @@
 //! Example how to store a `SecretTree` seed in the passphrase-encrypted form and use it
 //! to derive heterogeneous keys.
 
-use ed25519::{Keypair, SecretKey};
+use ed25519::SigningKey;
 use pwbox::{
     rcrypto::{RustCrypto, Scrypt},
     Eraser, ScryptParams, Suite,
@@ -13,8 +13,8 @@ use secret_tree::{Name, SecretTree};
 use std::fmt;
 
 struct Keys {
-    consensus_keys: Keypair,
-    service_keys: Keypair,
+    consensus_keys: SigningKey,
+    service_keys: SigningKey,
     other_secrets: Vec<Secret<u128>>,
 }
 
@@ -31,26 +31,20 @@ impl Keys {
         }
     }
 
-    fn generate_keypair(tree: SecretTree) -> Keypair {
+    fn generate_keypair(tree: SecretTree) -> SigningKey {
         // Secret keys in Ed25519 are just random bytes, so generating them in this way is safe.
         let secret_key = tree.create_secret::<[u8; 32]>();
-        let secret_key = SecretKey::from_bytes(secret_key.expose_secret()).unwrap();
-
-        Keypair {
-            public: (&secret_key).into(),
-            secret: secret_key,
-        }
+        SigningKey::from_bytes(secret_key.expose_secret())
     }
 }
 
 impl fmt::Display for Keys {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug_struct = formatter.debug_struct("Keys");
-        debug_struct.field(
-            "consensus",
-            &hex::encode(self.consensus_keys.public.as_bytes()),
-        );
-        debug_struct.field("service", &hex::encode(self.service_keys.public.as_bytes()));
+        let consensus_pk = self.consensus_keys.verifying_key();
+        debug_struct.field("consensus", &hex::encode(consensus_pk.as_bytes()));
+        let service_pk = self.service_keys.verifying_key();
+        debug_struct.field("service", &hex::encode(service_pk.as_bytes()));
         for (i, secret) in self.other_secrets.iter().enumerate() {
             debug_struct.field(&format!("other/{i}"), secret.expose_secret());
         }
@@ -64,7 +58,10 @@ fn main() {
     let tree = SecretTree::new(&mut rng);
     let keys = Keys::new(&tree);
     println!("Original keys: {keys:#}\n");
-    let public_keys = (keys.consensus_keys.public, keys.service_keys.public);
+    let public_keys = (
+        keys.consensus_keys.verifying_key(),
+        keys.service_keys.verifying_key(),
+    );
 
     // Assume that we have securely persisted the RNG tree (e.g., with passphrase encryption).
     let passphrase = "correct horse battery staple";
@@ -98,7 +95,10 @@ fn main() {
     let keys = Keys::new(&tree);
     assert_eq!(
         public_keys,
-        (keys.consensus_keys.public, keys.service_keys.public)
+        (
+            keys.consensus_keys.verifying_key(),
+            keys.service_keys.verifying_key()
+        )
     );
     println!("Restored keys: {keys:#}");
 }
