@@ -64,6 +64,11 @@ limiting the threat of state leakage.
 
 Crate documentation provides more implementation details.
 
+## Contributing
+
+All contributions are welcome! See [the contributing guide](CONTRIBUTING.md) to help
+you get involved.
+
 ## License
 
 Licensed under the [Apache-2.0 license](LICENSE).

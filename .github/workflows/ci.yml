@@ -101,6 +101,8 @@ jobs:
       - build-msrv
       - build-nostd
     if: github.event_name == 'push'
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
 
     steps:
