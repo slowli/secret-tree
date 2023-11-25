@@ -480,6 +480,10 @@ impl Name {
     /// Use the [`FromStr`] implementation for a fallible / non-panicking alternative.
     pub const fn new(name: &str) -> Self {
         let bytes = name.as_bytes();
+        assert!(
+            bytes.len() <= SALT_LEN,
+            "name is too long (should be <=16 bytes)"
+        );
 
         let mut i = 0;
         let mut buffer = [0_u8; SALT_LEN];
@@ -660,7 +664,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "name contains a null char")]
     fn name_with_null_chars_cannot_be_created() {
         let _name = Name::new("some\0name");
     }
@@ -672,7 +676,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "name is too long")]
     fn overly_long_name_cannot_be_created() {
         let _name = Name::new("Overly long name?");
     }
