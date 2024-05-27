@@ -28,7 +28,7 @@ const-decoder = "0.3.0"
 doc-comment = "0.3.3"
 ed25519 = { package = "ed25519-dalek", version = "2" }
 hex = "0.4.2"
-insta = { version = "1.38.0", features = ["yaml"] }
+insta = { version = "1.39.0", features = ["yaml"] }
 rand = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.8.2"
