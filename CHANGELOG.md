@@ -7,7 +7,7 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
-- Bump MSRV to 1.60.
+- Bump MSRV to 1.70.
 
 ## 0.5.0 - 2022-07-21
 
