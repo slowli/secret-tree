@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 env:
-  msrv: 1.60.0
+  msrv: 1.70.0
   nightly: nightly-2023-09-09
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
         uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-deny
-          version: "^0.14"
+          version: "^0.16"
 
       - name: Cache cargo build
         uses: actions/cache@v3
