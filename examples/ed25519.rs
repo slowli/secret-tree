@@ -2,7 +2,7 @@
 
 use ed25519::SigningKey;
 use rand::thread_rng;
-use secrecy::{ExposeSecret, Secret};
+use secrecy::{ExposeSecret, SecretBox};
 use secret_tree::{Name, SecretTree};
 
 use std::fmt;
@@ -10,7 +10,7 @@ use std::fmt;
 struct Keys {
     consensus_keys: SigningKey,
     service_keys: SigningKey,
-    other_secrets: Vec<Secret<u128>>,
+    other_secrets: Vec<SecretBox<u128>>,
 }
 
 impl Keys {

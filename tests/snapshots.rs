@@ -44,7 +44,7 @@ impl TreeOutput {
 
 #[test]
 fn secret_derivation_snapshot() {
-    let tree = SecretTree::from_seed(Seed::new([7; 32]));
+    let tree = SecretTree::from_seed(Seed::from(&[7; 32]));
     let tree_output = TreeOutput::new(tree);
     assert_yaml_snapshot!("tree-output", tree_output);
 }
