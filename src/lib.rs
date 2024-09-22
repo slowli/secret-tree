@@ -118,7 +118,7 @@ extern crate std;
 
 use rand_chacha::ChaChaRng;
 use rand_core::{CryptoRng, RngCore, SeedableRng};
-use secrecy::{zeroize::Zeroize, ExposeSecret, Secret};
+use secrecy::{zeroize::Zeroize, CloneableSecret, ExposeSecret, SecretBox};
 
 use core::{
     array::TryFromSliceError,
@@ -137,8 +137,50 @@ use crate::kdf::{derive_key, try_derive_key, Index, CONTEXT_LEN, SALT_LEN};
 /// Maximum byte length of a [`Name`] (16).
 pub const MAX_NAME_LEN: usize = SALT_LEN;
 
-/// Alias for a [`Secret`] array that contains seed bytes.
-pub type Seed = Secret<[u8; SEED_LEN]>;
+/// Wrapper around seed bytes.
+#[derive(Debug, Clone, Default)]
+struct SeedBytes([u8; SEED_LEN]);
+
+impl Zeroize for SeedBytes {
+    fn zeroize(&mut self) {
+        self.0.zeroize();
+    }
+}
+
+impl CloneableSecret for SeedBytes {}
+
+/// Seed for a [`SecretTree`].
+#[derive(Debug, Clone)]
+pub struct Seed(SecretBox<SeedBytes>);
+
+impl Seed {
+    /// Generates a random seed using the provided RNG.
+    pub fn new<R: RngCore + CryptoRng>(rng: &mut R) -> Self {
+        Self(SecretBox::<SeedBytes>::init_with_mut(|seed| {
+            rng.fill_bytes(&mut seed.0);
+        }))
+    }
+
+    fn init_with(init_fn: impl FnOnce(&mut [u8; SEED_LEN])) -> Self {
+        Self(SecretBox::<SeedBytes>::init_with_mut(|seed_bytes| {
+            init_fn(&mut seed_bytes.0);
+        }))
+    }
+
+    /// Exposes the bytes contained in this seed.
+    pub fn expose_secret(&self) -> &[u8; SEED_LEN] {
+        &self.0.expose_secret().0
+    }
+}
+
+/// Creates a seed from a (potentially unsecured) byte slice.
+impl From<&[u8; SEED_LEN]> for Seed {
+    fn from(bytes: &[u8; SEED_LEN]) -> Self {
+        Self::init_with(|seed_bytes| {
+            *seed_bytes = *bytes;
+        })
+    }
+}
 
 /// Seeded structure that can be used to produce secrets and child `SecretTree`s.
 ///
@@ -162,12 +204,12 @@ pub type Seed = Secret<[u8; SEED_LEN]>;
 /// ```
 /// use secret_tree::{SecretTree, Name};
 /// use rand::{Rng, thread_rng};
-/// use secrecy::{ExposeSecret, Secret};
+/// use secrecy::{ExposeSecret, SecretBox};
 ///
 /// let tree = SecretTree::new(&mut thread_rng());
 /// // Don't forget to securely store secrets! Here, we wrap them
 /// // in a container that automatically zeroes the secret on drop.
-/// let first_secret: Secret<[u8; 32]> = tree
+/// let first_secret: SecretBox<[u8; 32]> = tree
 ///     .child(Name::new("first"))
 ///     .create_secret();
 ///
@@ -175,17 +217,17 @@ pub type Seed = Secret<[u8; SEED_LEN]>;
 /// // follow logical paths `sequence/0`, `sequence/1`, .., `sequence/4`
 /// // relative to the `tree`.
 /// let child_store = tree.child(Name::new("sequence"));
-/// let more_secrets: Vec<Secret<[u64; 4]>> = (0..5)
-///     .map(|i| Secret::new(child_store.index(i).rng().gen()))
+/// let more_secrets: Vec<SecretBox<[u64; 4]>> = (0..5)
+///     .map(|i| SecretBox::new(Box::new(child_store.index(i).rng().gen())))
 ///     .collect();
 ///
 /// // The tree is compactly stored as a single 32-byte seed.
-/// let seed = tree.seed().to_owned();
+/// let seed = tree.seed().clone();
 /// drop(tree);
 ///
 /// // If we restore the tree from the seed, we can restore all derived secrets.
 /// let tree = SecretTree::from_seed(seed);
-/// let restored_secret: Secret<[u8; 32]> = tree
+/// let restored_secret: SecretBox<[u8; 32]> = tree
 ///     .child(Name::new("first"))
 ///     .create_secret();
 /// assert_eq!(
@@ -209,10 +251,8 @@ impl SecretTree {
 
     /// Generates a tree by sampling its seed from the supplied RNG.
     pub fn new<R: RngCore + CryptoRng>(rng: &mut R) -> Self {
-        let mut seed = [0; 32];
-        rng.fill_bytes(&mut seed);
         Self {
-            seed: Secret::new(seed),
+            seed: Seed::new(rng),
         }
     }
 
@@ -227,9 +267,9 @@ impl SecretTree {
     ///
     /// Returns an error if `bytes` has an invalid length (not [`SEED_LEN`]).
     pub fn from_slice(bytes: &[u8]) -> Result<Self, TryFromSliceError> {
-        let seed: [u8; 32] = bytes.try_into()?;
+        let seed_ref: &[u8; 32] = bytes.try_into()?;
         Ok(Self {
-            seed: Secret::new(seed),
+            seed: seed_ref.into(),
         })
     }
 
@@ -300,13 +340,16 @@ impl SecretTree {
     /// Returns an error if `T` does not have length `16..=64` bytes. Use [`Self::rng()`]
     /// if the buffer size may be outside these bounds, or if the secret must be derived
     /// in a more complex way.
-    pub fn try_create_secret<T>(self) -> Result<Secret<T>, FillError>
+    pub fn try_create_secret<T>(self) -> Result<SecretBox<T>, FillError>
     where
         T: AsByteSliceMut + Default + Zeroize,
     {
-        let mut secret_value = T::default();
-        self.try_fill(&mut secret_value)?;
-        Ok(Secret::new(secret_value))
+        let mut result = Ok(());
+        let secret = SecretBox::init_with_mut(|secret_value| {
+            result = self.try_fill(secret_value);
+        });
+        result?;
+        Ok(secret)
     }
 
     /// Creates a secret by instantiating a buffer and filling it with a key derived from
@@ -315,7 +358,7 @@ impl SecretTree {
     /// # Panics
     ///
     /// Panics in the same cases when [`Self::try_create_secret()`] returns an error.
-    pub fn create_secret<T>(self) -> Secret<T>
+    pub fn create_secret<T>(self) -> SecretBox<T>
     where
         T: AsByteSliceMut + Default + Zeroize,
     {
@@ -326,26 +369,26 @@ impl SecretTree {
 
     /// Produces a child with the specified string identifier.
     pub fn child(&self, name: Name) -> Self {
-        let mut child_seed = [0_u8; 32];
-        derive_key(
-            &mut child_seed,
-            Index::Bytes(name.0),
-            Self::NAME_CONTEXT,
-            self.seed.expose_secret(),
-        );
-        Self::from_seed(Secret::new(child_seed))
+        Self::from_seed(Seed::init_with(|child_seed| {
+            derive_key(
+                child_seed,
+                Index::Bytes(name.0),
+                Self::NAME_CONTEXT,
+                self.seed.expose_secret(),
+            );
+        }))
     }
 
     /// Produces a child with the specified integer index.
     pub fn index(&self, index: u64) -> Self {
-        let mut child_seed = [0_u8; 32];
-        derive_key(
-            &mut child_seed,
-            Index::Number(index),
-            Self::INDEX_CONTEXT,
-            self.seed.expose_secret(),
-        );
-        Self::from_seed(Secret::new(child_seed))
+        Self::from_seed(Seed::init_with(|child_seed| {
+            derive_key(
+                child_seed,
+                Index::Number(index),
+                Self::INDEX_CONTEXT,
+                self.seed.expose_secret(),
+            );
+        }))
     }
 
     /// Produces a child with the specified 32-byte digest (e.g., an output of SHA-256,
@@ -359,23 +402,23 @@ impl SecretTree {
         let mut second_half_of_digest = [0_u8; SALT_LEN];
         second_half_of_digest.copy_from_slice(&digest[SALT_LEN..]);
 
-        let mut intermediate_seed = [0_u8; 32];
-        derive_key(
-            &mut intermediate_seed,
-            Index::Bytes(first_half_of_digest),
-            Self::DIGEST_START_CONTEXT,
-            self.seed.expose_secret(),
-        );
-        let intermediate_seed = Secret::new(intermediate_seed);
+        let intermediate_seed = Seed::init_with(|intermediate_seed| {
+            derive_key(
+                intermediate_seed,
+                Index::Bytes(first_half_of_digest),
+                Self::DIGEST_START_CONTEXT,
+                self.seed.expose_secret(),
+            );
+        });
 
-        let mut child_seed = [0_u8; 32];
-        derive_key(
-            &mut child_seed,
-            Index::Bytes(second_half_of_digest),
-            Self::DIGEST_END_CONTEXT,
-            intermediate_seed.expose_secret(),
-        );
-        Self::from_seed(Secret::new(child_seed))
+        Self::from_seed(Seed::init_with(|child_seed| {
+            derive_key(
+                child_seed,
+                Index::Bytes(second_half_of_digest),
+                Self::DIGEST_END_CONTEXT,
+                intermediate_seed.expose_secret(),
+            );
+        }))
     }
 }
 

@@ -39,12 +39,12 @@ Basic usage:
 ```rust
 use secret_tree::{SecretTree, Name};
 use rand::{Rng, thread_rng};
-use secrecy::Secret;
+use secrecy::SecretBox;
 
 let tree = SecretTree::new(&mut thread_rng());
 // Create 2 children from the tree: an ordinary secret
 // and a CSPRNG with a fixed seed.
-let secret: Secret<[u8; 32]> = tree
+let secret: SecretBox<[u8; 32]> = tree
     .child(Name::new("secret"))
     .create_secret();
 let other_secret_rng = tree
