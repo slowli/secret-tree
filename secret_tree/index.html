@@ -1,0 +1,83 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Hierarchical secret derivation with Blake2b and random number generators."><title>secret_tree - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="secret_tree" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../secret_tree/index.html">secret_<wbr>tree</a><span class="version">0.5.0</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section><ul class="block"><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li><li><a href="#constants">Constants</a></li><li><a href="#traits">Traits</a></li></ul></section></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1>Crate <a class="mod" href="#">secret_tree</a><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><span class="out-of-band"><a class="src" href="../src/secret_tree/lib.rs.html#1-798">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Hierarchical secret derivation with Blake2b and random number generators.</p>
+<h2 id="how-it-works"><a class="doc-anchor" href="#how-it-works">§</a>How it works</h2>
+<p>This crate provides <a href="struct.SecretTree.html" title="struct secret_tree::SecretTree"><code>SecretTree</code></a> – a structure produced from a 32-byte seed that
+may be converted into a secret key or a cryptographically secure
+pseudo-random number generator (CSPRNG).
+Besides that, an <code>SecretTree</code> can produce child trees, which are
+identified by a string <a href="struct.Name.html" title="struct secret_tree::Name"><code>Name</code></a> or an integer index. This enables creating
+<em>hierarchies</em> of secrets (like <code>some_secret/0</code>, <code>some_secret/1</code> and <code>other_secret/foo/1/bar</code>),
+which are ultimately derived from a single <code>SecretTree</code>. It’s enough to securely store
+the seed of this root tree (e.g., in a passphrase-encrypted form) to recreate all secrets.</p>
+<p>The derived secrets cannot be linked; leakage of a derived secret does not compromise
+sibling secrets or the parent <code>SecretTree</code>.</p>
+<h2 id="crate-features"><a class="doc-anchor" href="#crate-features">§</a>Crate features</h2>
+<p>The crate is <code>no_std</code>-compatible. There is optional <code>std</code> support enabled via the <code>std</code> feature,
+which is on by default.</p>
+<h2 id="implementation-details"><a class="doc-anchor" href="#implementation-details">§</a>Implementation details</h2>
+<p><code>SecretTree</code> uses the <a href="https://tools.ietf.org/html/rfc7693">Blake2b</a> keyed hash function to derive the following kinds of data:</p>
+<ul>
+<li>secret key</li>
+<li>CSPRNG seed (the RNG used is <a href="https://rust-random.github.io/rand/rand_chacha/type.ChaChaRng.html" title="type rand_chacha::ChaChaRng"><code>ChaChaRng</code></a>)</li>
+<li>seeds for child <code>SecretTree</code>s</li>
+</ul>
+<p>The procedure is similar to the use of Blake2b for key derivation in <a href="https://download.libsodium.org/doc/key_derivation">libsodium</a>:</p>
+<ul>
+<li>Blake2b is used with a custom initialization block. The block has two
+customizable parameters of interest: <em>salt</em> and <em>personalization</em> (each is 16 bytes).
+See the table below for information how these two parameters are set for each type
+of derived data.</li>
+<li>The key is the seed of the <code>SecretTree</code> instance used for derivation.</li>
+<li>The message is an empty bit string.</li>
+</ul>
+<p>The length of derived data is 32 bytes in all cases.</p>
+<h3 id="salt-and-personalization"><a class="doc-anchor" href="#salt-and-personalization">§</a>Salt and personalization</h3><div><table><thead><tr><th style="text-align: left">Data type</th><th style="text-align: left">Salt</th><th style="text-align: left">Personalization</th></tr></thead><tbody>
+<tr><td style="text-align: left">Secret key</td><td style="text-align: left"><code>[0; 16]</code></td><td style="text-align: left"><code>b"bytes\0\0...\0"</code></td></tr>
+<tr><td style="text-align: left">CSPRNG seed</td><td style="text-align: left"><code>[0; 16]</code></td><td style="text-align: left"><code>b"rng\0\0...\0"</code></td></tr>
+<tr><td style="text-align: left">Seed for a <a href="struct.SecretTree.html#method.child" title="method secret_tree::SecretTree::child">named child</a></td><td style="text-align: left"><code>name.as_bytes()</code> (zero-padded)</td><td style="text-align: left"><code>b"name\0\0...\0"</code></td></tr>
+<tr><td style="text-align: left">Seed for an <a href="struct.SecretTree.html#method.index" title="method secret_tree::SecretTree::index">indexed child</a></td><td style="text-align: left"><code>LittleEndian(index)</code></td><td style="text-align: left"><code>b"index\0\0...\0"</code></td></tr>
+<tr><td style="text-align: left">Seed for a <a href="struct.SecretTree.html#method.digest" title="method secret_tree::SecretTree::digest">digest child</a> (1st iter)</td><td style="text-align: left"><code>digest[..16]</code></td><td style="text-align: left"><code>b"digest0\0\0...\0"</code></td></tr>
+<tr><td style="text-align: left">Seed for a digest child (2nd iter)</td><td style="text-align: left"><code>digest[16..]</code></td><td style="text-align: left"><code>b"digest1\0\0...\0"</code></td></tr>
+</tbody></table>
+</div>
+<p>Derivation of a secret key, CSPRNG seed and seeds for indexed children are
+all fully compatible with libsodium.
+libsodium uses the salt section in the Blake2b initialization block to store
+the <em>index</em> of a child key, and the personalization section to store its <em>context</em>.</p>
+<p>For example, the CSPRNG seed can be computed as follows (if we translate libsodium API
+from C to Rust):</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>rand::SeedableRng;
+<span class="kw">use </span>rand_chacha::ChaChaRng;
+
+<span class="kw">let </span>parent_seed: [u8; <span class="number">32</span>] = <span class="comment">// ...
+</span><span class="kw">let </span><span class="kw-2">mut </span>rng_seed = [<span class="number">0</span>; <span class="number">32</span>];
+crypto_kdf_derive_from_key(
+    <span class="kw-2">&amp;mut </span>rng_seed,
+    <span class="comment">/* index */ </span><span class="number">0</span>,
+    <span class="comment">/* context */ </span><span class="string">b"rng\0\0\0\0\0"</span>,
+    <span class="comment">/* master_key */ </span><span class="kw-2">&amp;</span>parent_seed,
+);
+<span class="kw">let </span>rng = ChaChaRng::from_seed(rng_seed);</code></pre></div>
+<p>In case of named and digest children, we utilize the entire salt section, while libsodium
+only uses the first 8 bytes.</p>
+<p>For digest children, the derivation procedure is applied 2 times, taking the first 16 bytes
+and the remaining 16 bytes of the digest respectively. The 32-byte key derived on the first
+iteration is used as the master key input for the second iteration. Such a procedure
+is necessary because Blake2b only supports 16-byte salts.</p>
+<h2 id="design-motivations"><a class="doc-anchor" href="#design-motivations">§</a>Design motivations</h2>
+<ul>
+<li>We allow to derive RNGs besides keys in order to allow a richer variety of applications.
+RNGs can be used in more complex use cases than fixed-size byte arrays,
+e.g., when the length of the secret depends on previous RNG output, or RNG is used to sample
+a complex distribution.</li>
+<li>Derivation in general (instead of using a single <code>SeedableRng</code> to create all secrets)
+allows to add new secrets or remove old ones without worrying about compatibility.</li>
+<li>Child RNGs identified by an index can be used to derive secrets of the same type,
+the quantity of which is unbounded. As an example, they can be used to produce
+blinding factors for <a href="https://en.wikipedia.org/wiki/Commitment_scheme">Pedersen commitments</a> (e.g., in a privacy-focused cryptocurrency).</li>
+<li>Some steps are taken to make it difficult to use <code>SecretTree</code> incorrectly. For example,
+<code>rng()</code> and <code>fill()</code> methods consume the tree instance, which makes it harder to reuse
+the same RNG for multiple purposes (which is not intended).</li>
+</ul>
+</div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.Name.html" title="struct secret_tree::Name">Name</a></div><div class="desc docblock-short">Name of a child <a href="struct.SecretTree.html" title="struct secret_tree::SecretTree"><code>SecretTree</code></a>.</div></li><li><div class="item-name"><a class="struct" href="struct.SecretTree.html" title="struct secret_tree::SecretTree">Secret<wbr>Tree</a></div><div class="desc docblock-short">Seeded structure that can be used to produce secrets and child <code>SecretTree</code>s.</div></li><li><div class="item-name"><a class="struct" href="struct.Seed.html" title="struct secret_tree::Seed">Seed</a></div><div class="desc docblock-short">Seed for a <a href="struct.SecretTree.html" title="struct secret_tree::SecretTree"><code>SecretTree</code></a>.</div></li></ul><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="enum" href="enum.FillError.html" title="enum secret_tree::FillError">Fill<wbr>Error</a></div><div class="desc docblock-short">Errors that can occur when calling <a href="struct.SecretTree.html#method.try_fill" title="method secret_tree::SecretTree::try_fill"><code>SecretTree::try_fill()</code></a>.</div></li><li><div class="item-name"><a class="enum" href="enum.NameError.html" title="enum secret_tree::NameError">Name<wbr>Error</a></div><div class="desc docblock-short">Errors that can occur when converting a <code>&amp;str</code> into <a href="struct.Name.html" title="struct secret_tree::Name"><code>Name</code></a>.</div></li></ul><h2 id="constants" class="section-header">Constants<a href="#constants" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="constant" href="constant.MAX_NAME_LEN.html" title="constant secret_tree::MAX_NAME_LEN">MAX_<wbr>NAME_<wbr>LEN</a></div><div class="desc docblock-short">Maximum byte length of a <a href="struct.Name.html" title="struct secret_tree::Name"><code>Name</code></a> (16).</div></li><li><div class="item-name"><a class="constant" href="constant.SEED_LEN.html" title="constant secret_tree::SEED_LEN">SEED_<wbr>LEN</a></div><div class="desc docblock-short">Byte length of a <a href="struct.Seed.html" title="struct secret_tree::Seed"><code>Seed</code></a> (32).</div></li></ul><h2 id="traits" class="section-header">Traits<a href="#traits" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="trait" href="trait.AsByteSliceMut.html" title="trait secret_tree::AsByteSliceMut">AsByte<wbr>Slice<wbr>Mut</a></div><div class="desc docblock-short">Converts a type to a mutable byte slice. This is used within the crate to fill
+secret values with the RNG output.</div></li></ul></section></div></main></body></html>
