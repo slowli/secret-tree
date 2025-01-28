@@ -16,8 +16,8 @@ repository = "https://github.com/slowli/secret-tree"
 
 [dependencies]
 # Public dependencies (present in the API exposed by the crate).
-rand_core = { version = "0.6.4", default-features = false }
-rand_chacha = { version = "0.3.0", default-features = false }
+rand_core = { version = "0.9.0", default-features = false }
+rand_chacha = { version = "0.9.0", default-features = false }
 secrecy = { version = "0.10.3", default-features = false }
 
 # Private dependencies.
@@ -28,8 +28,8 @@ const-decoder = "0.4.0"
 doc-comment = "0.3.3"
 ed25519 = { package = "ed25519-dalek", version = "2" }
 hex = "0.4.2"
-insta = { version = "1.41.1", features = ["yaml"] }
-rand = "0.8"
+insta = { version = "1.42.1", features = ["yaml"] }
+rand = "0.9"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.8.2"
 version-sync = "0.9"
