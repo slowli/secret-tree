@@ -543,7 +543,7 @@ impl FromStr for Name {
     type Err = NameError;
 
     fn from_str(name: &str) -> Result<Self, Self::Err> {
-        let byte_len = name.as_bytes().len();
+        let byte_len = name.len();
         if byte_len > SALT_LEN {
             return Err(NameError::TooLong);
         }
