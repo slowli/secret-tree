@@ -116,10 +116,6 @@
 #[cfg(all(not(feature = "std"), test))]
 extern crate std;
 
-use rand_chacha::ChaChaRng;
-use rand_core::{CryptoRng, RngCore, SeedableRng};
-use secrecy::{zeroize::Zeroize, CloneableSecret, ExposeSecret, SecretBox};
-
 use core::{
     array::TryFromSliceError,
     convert::TryInto,
@@ -127,12 +123,15 @@ use core::{
     str::{self, FromStr},
 };
 
-mod byte_slice;
-mod kdf;
-
-pub use crate::{byte_slice::AsByteSliceMut, kdf::SEED_LEN};
+use rand_chacha::ChaChaRng;
+use rand_core::{CryptoRng, RngCore, SeedableRng};
+use secrecy::{zeroize::Zeroize, CloneableSecret, ExposeSecret, SecretBox};
 
 use crate::kdf::{derive_key, try_derive_key, Index, CONTEXT_LEN, SALT_LEN};
+pub use crate::{byte_slice::AsByteSliceMut, kdf::SEED_LEN};
+
+mod byte_slice;
+mod kdf;
 
 /// Maximum byte length of a [`Name`] (16).
 pub const MAX_NAME_LEN: usize = SALT_LEN;
@@ -203,10 +202,10 @@ impl From<&[u8; SEED_LEN]> for Seed {
 ///
 /// ```
 /// use secret_tree::{SecretTree, Name};
-/// use rand::{Rng, thread_rng};
+/// use rand::Rng;
 /// use secrecy::{ExposeSecret, SecretBox};
 ///
-/// let tree = SecretTree::new(&mut thread_rng());
+/// let tree = SecretTree::new(&mut rand::rng());
 /// // Don't forget to securely store secrets! Here, we wrap them
 /// // in a container that automatically zeroes the secret on drop.
 /// let first_secret: SecretBox<[u8; 32]> = tree
@@ -218,7 +217,7 @@ impl From<&[u8; SEED_LEN]> for Seed {
 /// // relative to the `tree`.
 /// let child_store = tree.child(Name::new("sequence"));
 /// let more_secrets: Vec<SecretBox<[u64; 4]>> = (0..5)
-///     .map(|i| SecretBox::new(Box::new(child_store.index(i).rng().gen())))
+///     .map(|i| SecretBox::new(Box::new(child_store.index(i).rng().random())))
 ///     .collect();
 ///
 /// // The tree is compactly stored as a single 32-byte seed.
@@ -543,7 +542,7 @@ impl FromStr for Name {
     type Err = NameError;
 
     fn from_str(name: &str) -> Result<Self, Self::Err> {
-        let byte_len = name.as_bytes().len();
+        let byte_len = name.len();
         if byte_len > SALT_LEN {
             return Err(NameError::TooLong);
         }
@@ -606,9 +605,9 @@ doc_comment::doctest!("../README.md");
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use rand::{Rng, SeedableRng};
+
+    use super::*;
 
     #[test]
     fn children_with_same_bytes_in_key() {
@@ -628,7 +627,7 @@ mod tests {
         let tree = SecretTree::new(&mut ChaChaRng::seed_from_u64(123));
         let mut buffer = [0_u64; 8];
         tree.child(Name::new("foo")).fill(&mut buffer);
-        let other_buffer: [u64; 8] = tree.child(Name::new("foo")).rng().gen();
+        let other_buffer: [u64; 8] = tree.child(Name::new("foo")).rng().random();
         assert_ne!(buffer, other_buffer);
     }
 

@@ -92,8 +92,9 @@ pub(crate) fn derive_key(
 
 #[test]
 fn sodium_test_vectors_64byte_output() {
-    use const_decoder::Decoder::Hex;
     use std::convert::TryFrom;
+
+    use const_decoder::Decoder::Hex;
 
     const CTX: [u8; CONTEXT_LEN] = *b"KDF test";
     const EXP: &[[u8; 64]] = &[
@@ -153,8 +154,9 @@ fn sodium_test_vectors_64byte_output() {
 
 #[test]
 fn sodium_test_vectors_varying_len_output() {
-    use const_decoder::Decoder::Hex;
     use std::{convert::TryFrom, vec};
+
+    use const_decoder::Decoder::Hex;
 
     const CTX: [u8; CONTEXT_LEN] = *b"KDF test";
     const EXP: &[&[u8]] = &[

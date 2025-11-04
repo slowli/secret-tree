@@ -1,14 +1,13 @@
 //! Snapshot tests to ensure that the secrets derived from the tree remain usable across
 //! crate updates.
 
+use std::collections::BTreeMap;
+
 use insta::assert_yaml_snapshot;
 use rand::Rng;
 use secrecy::ExposeSecret;
-use serde::Serialize;
-
-use std::collections::BTreeMap;
-
 use secret_tree::{Name, SecretTree, Seed};
+use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 struct TreeOutput {
@@ -37,7 +36,7 @@ impl TreeOutput {
             digest_values: (0..5)
                 .map(|i| *tree.digest(&[i; 32]).create_secret().expose_secret())
                 .collect(),
-            rng_output: tree.rng().gen(),
+            rng_output: tree.rng().random(),
         }
     }
 }

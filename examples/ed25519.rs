@@ -1,11 +1,10 @@
 //! Example how to store a `SecretTree` seed and use it to derive heterogeneous keys.
 
+use std::fmt;
+
 use ed25519::SigningKey;
-use rand::thread_rng;
 use secrecy::{ExposeSecret, SecretBox};
 use secret_tree::{Name, SecretTree};
-
-use std::fmt;
 
 struct Keys {
     consensus_keys: SigningKey,
@@ -49,7 +48,7 @@ impl fmt::Display for Keys {
 
 fn main() {
     // Generate a RNG tree randomly.
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
     let tree = SecretTree::new(&mut rng);
     let keys = Keys::new(&tree);
     println!("Original keys: {keys:#}\n");
