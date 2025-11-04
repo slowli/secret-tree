@@ -5,10 +5,13 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## 0.6.0 - 2025-11-04
+
 ### Changed
 
 - Update `secrecy` version to 0.10; change `Secret` to `SecretBox` accordingly, and make `Seed` a struct
   instead of a type alias. 
+- Update `rand_core` version to 0.9.
 - Bump MSRV to 1.70.
 
 ## 0.5.0 - 2022-07-21
