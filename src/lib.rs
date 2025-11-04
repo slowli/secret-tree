@@ -203,10 +203,10 @@ impl From<&[u8; SEED_LEN]> for Seed {
 ///
 /// ```
 /// use secret_tree::{SecretTree, Name};
-/// use rand::{Rng, thread_rng};
+/// use rand::Rng;
 /// use secrecy::{ExposeSecret, SecretBox};
 ///
-/// let tree = SecretTree::new(&mut thread_rng());
+/// let tree = SecretTree::new(&mut rand::rng());
 /// // Don't forget to securely store secrets! Here, we wrap them
 /// // in a container that automatically zeroes the secret on drop.
 /// let first_secret: SecretBox<[u8; 32]> = tree
@@ -218,7 +218,7 @@ impl From<&[u8; SEED_LEN]> for Seed {
 /// // relative to the `tree`.
 /// let child_store = tree.child(Name::new("sequence"));
 /// let more_secrets: Vec<SecretBox<[u64; 4]>> = (0..5)
-///     .map(|i| SecretBox::new(Box::new(child_store.index(i).rng().gen())))
+///     .map(|i| SecretBox::new(Box::new(child_store.index(i).rng().random())))
 ///     .collect();
 ///
 /// // The tree is compactly stored as a single 32-byte seed.
@@ -628,7 +628,7 @@ mod tests {
         let tree = SecretTree::new(&mut ChaChaRng::seed_from_u64(123));
         let mut buffer = [0_u64; 8];
         tree.child(Name::new("foo")).fill(&mut buffer);
-        let other_buffer: [u64; 8] = tree.child(Name::new("foo")).rng().gen();
+        let other_buffer: [u64; 8] = tree.child(Name::new("foo")).rng().random();
         assert_ne!(buffer, other_buffer);
     }
 

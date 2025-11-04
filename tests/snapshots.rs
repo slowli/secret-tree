@@ -37,7 +37,7 @@ impl TreeOutput {
             digest_values: (0..5)
                 .map(|i| *tree.digest(&[i; 32]).create_secret().expose_secret())
                 .collect(),
-            rng_output: tree.rng().gen(),
+            rng_output: tree.rng().random(),
         }
     }
 }
