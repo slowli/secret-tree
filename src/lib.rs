@@ -116,10 +116,6 @@
 #[cfg(all(not(feature = "std"), test))]
 extern crate std;
 
-use rand_chacha::ChaChaRng;
-use rand_core::{CryptoRng, RngCore, SeedableRng};
-use secrecy::{zeroize::Zeroize, CloneableSecret, ExposeSecret, SecretBox};
-
 use core::{
     array::TryFromSliceError,
     convert::TryInto,
@@ -127,12 +123,15 @@ use core::{
     str::{self, FromStr},
 };
 
-mod byte_slice;
-mod kdf;
-
-pub use crate::{byte_slice::AsByteSliceMut, kdf::SEED_LEN};
+use rand_chacha::ChaChaRng;
+use rand_core::{CryptoRng, RngCore, SeedableRng};
+use secrecy::{zeroize::Zeroize, CloneableSecret, ExposeSecret, SecretBox};
 
 use crate::kdf::{derive_key, try_derive_key, Index, CONTEXT_LEN, SALT_LEN};
+pub use crate::{byte_slice::AsByteSliceMut, kdf::SEED_LEN};
+
+mod byte_slice;
+mod kdf;
 
 /// Maximum byte length of a [`Name`] (16).
 pub const MAX_NAME_LEN: usize = SALT_LEN;
@@ -606,9 +605,9 @@ doc_comment::doctest!("../README.md");
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use rand::{Rng, SeedableRng};
+
+    use super::*;
 
     #[test]
     fn children_with_same_bytes_in_key() {

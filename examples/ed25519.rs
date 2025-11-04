@@ -1,10 +1,10 @@
 //! Example how to store a `SecretTree` seed and use it to derive heterogeneous keys.
 
+use std::fmt;
+
 use ed25519::SigningKey;
 use secrecy::{ExposeSecret, SecretBox};
 use secret_tree::{Name, SecretTree};
-
-use std::fmt;
 
 struct Keys {
     consensus_keys: SigningKey,
